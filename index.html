@@ -383,10 +383,10 @@ tr.GR td:first-child { text-align: left; font-family: var(--font); font-size: 13
             <th class="gh" colspan="3" style="border-bottom:1px solid var(--border)">Monthly Estimate (×30 days)</th>
           </tr>
           <tr>
-            <th class="sub gl">MH Req <span style="font-size:9px;opacity:.7">×1.16 ×1.5</span></th>
+            <th class="sub gl">MH Req <span style="font-size:9px;opacity:.7">×1.16</span></th>
             <th class="sub gl">Est. TIDs / mo</th>
-            <th class="sub">Monthly Flyers</th>
-            <th class="sub">Monthly Req <span style="font-size:9px;opacity:.7">×1.16 ×1.5</span></th>
+            <th class="sub">Monthly Flyers <span style="font-size:9px;opacity:.7">1.16x basis</span></th>
+            <th class="sub">Monthly Req <span style="font-size:9px;opacity:.7">×1.5</span></th>
           </tr>
         </thead>
         <tbody id="main-tbody"></tbody>
@@ -402,11 +402,12 @@ tr.GR td:first-child { text-align: left; font-family: var(--font); font-size: 13
    CONSTANTS
 ═══════════════════════════════════════════ */
 const FLYER_CAP  = 80;
-const ADJ_FACTOR = 1.16;  // base upscale
-const UPSCALE    = 1.5;   // additional 50% on top, per asset
-const fc  = n => Math.ceil(n / FLYER_CAP);
-const adj = n => Math.ceil(Math.ceil(n * ADJ_FACTOR) * UPSCALE);  // ×1.16 then ×1.5
-const isMH = s => typeof s === 'string' && s.toLowerCase().startsWith('motherhub');
+const ADJ_FACTOR = 1.16;  // MH Req multiplier
+const MON_SCALE  = 1.5;   // Monthly Req multiplier on top of 1.16x monthly value
+const fc    = n => Math.ceil(n / FLYER_CAP);
+const adjMH = n => Math.ceil(n * ADJ_FACTOR);          // MH Req: ×1.16
+const adjMo = n => Math.ceil(n * MON_SCALE);           // Monthly Req: ×1.5 on monthly 1.16 value
+const isMH  = s => typeof s === 'string' && s.toLowerCase().startsWith('motherhub');
 
 /* ═══════════════════════════════════════════
    DIRECTORY
@@ -547,6 +548,10 @@ function compute(rows) {
   const getO = o => { if (!PO[o]) PO[o] = { c1:{}, c2:{}, c3:{}, c2sub:{} }; return PO[o]; };
   const getA = n => { if (!PA[n]) PA[n] = { repack:{} }; return PA[n]; };
 
+  // Track distributable blanks per origin MH
+  // (rows where origin is known but dm/ah is blank → we know the MH, distribute back)
+  const blanksByMH = {};
+
   for (const r of rows) {
     let origin;
     if (useDir) {
@@ -562,14 +567,24 @@ function compute(rows) {
 
     const dm = (r[C_DM] || '').trim();
     const ah = (r[C_AH] || '').trim();
-    if (!dm) { skipDM++; continue; }
-    if (!ah) { skipAH++; continue; }
 
-    // collect date for monthly estimation
+    if (!dm) {
+      // Origin known, dm blank → count against this MH for distribution
+      skipDM++;
+      blanksByMH[origin] = (blanksByMH[origin] || 0) + 1;
+      continue;
+    }
+    if (!ah) {
+      // Origin + dm known, ah blank → count against this MH
+      skipAH++;
+      blanksByMH[origin] = (blanksByMH[origin] || 0) + 1;
+      continue;
+    }
+
+    // Collect date for monthly estimation
     if (C_DATE) {
       const raw = (r[C_DATE] || '').trim();
       if (raw) {
-        // extract YYYY-MM-DD part or the first 10 chars
         const m = raw.match(/\d{4}-\d{2}-\d{2}/) || raw.match(/\d{2}[-/]\d{2}[-/]\d{4}/);
         if (m) distinctDates.add(m[0]);
         else if (raw.length >= 8) distinctDates.add(raw.substring(0, 10));
@@ -594,27 +609,36 @@ function compute(rows) {
     }
   }
 
-  // Monthly scale factor
-  const daysInData    = distinctDates.size || null;
-  const dailyRate     = daysInData ? processed / daysInData : null;
-  const monthlyTIDs   = dailyRate ? Math.round(dailyRate * 30) : null;
-  const scaleFactor   = monthlyTIDs ? monthlyTIDs / processed : null;
+  // Monthly scale factor (based on processed rows only — blanks are already proportioned in)
+  const daysInData  = distinctDates.size || null;
+  const dailyRate   = daysInData ? processed / daysInData : null;
+  const monthlyTIDs = dailyRate ? Math.round(dailyRate * 30) : null;
+  const scaleFactor = monthlyTIDs ? monthlyTIDs / processed : null;
 
-  // Build origin data (for asset map)
+  // Build origin → asset map
   const ent   = m => Object.entries(m);
   const sumV  = m => Object.values(m).reduce((s, n) => s + n, 0);
   const fcSum = m => ent(m).reduce((s, [, n]) => s + fc(n), 0);
 
   for (const [origin, o] of ent(PO)) {
-    const c1F = fcSum(o.c1), c2F = fcSum(o.c2), c3F = fcSum(o.c3);
-    const c1T = sumV(o.c1), c2T = sumV(o.c2), c3T = sumV(o.c3);
     const a = getA(origin);
-    a.c1T=c1T; a.c2T=c2T; a.c3T=c3T;
-    a.c1F=c1F; a.c2F=c2F; a.c3F=c3F;
+    a.c1T = sumV(o.c1); a.c2T = sumV(o.c2); a.c3T = sumV(o.c3);
+    a.c1F = fcSum(o.c1); a.c2F = fcSum(o.c2); a.c3F = fcSum(o.c3);
     a.c2sub = o.c2sub;
   }
 
-  // Build assetData — per-asset: ×1.16 then ×1.5
+  /* ── Build assetData ──────────────────────────────────────────
+   *
+   *  Blank distribution:
+   *    blanksByMH[name] = rows with blank dm/ah that had this origin
+   *    distScale = (processed_TIDs_at_asset + blank_TIDs_at_asset) / processed_TIDs_at_asset
+   *    totF_dist = ceil(totF × distScale)  — approx flyers if no blanks existed
+   *
+   *  Formula chain:
+   *    adjF    = ceil(totF_dist × 1.16)           ← MH Req
+   *    monF    = ceil(adjF × scaleFactor)          ← monthly 1.16x value
+   *    monAdj  = ceil(monF × 1.5)                 ← Monthly Req
+   * ──────────────────────────────────────────────────────────── */
   assetData = [];
   let gtTotF=0, gtAdjF=0, gtMonF=0, gtMonAdj=0, gtMonTIDs=0;
 
@@ -626,21 +650,29 @@ function compute(rows) {
       for (const [, n] of ent(ahMap)) { rT+=n; rF+=fc(n); }
     }
 
-    const totT  = a.c1T + a.c2T + a.c3T + rT;
-    const totF  = a.c1F + a.c2F + a.c3F + rF;
-    const adjF  = adj(totF);
+    const totT = a.c1T + a.c2T + a.c3T + rT;
+    const totF = a.c1F + a.c2F + a.c3F + rF;
 
-    const monTIDs = scaleFactor ? Math.round(totT * scaleFactor) : null;
-    const monF    = scaleFactor ? Math.ceil(totF * scaleFactor)  : null;
-    const monAdj  = monF !== null ? adj(monF) : null;
+    // Apply blank distribution for origin-side assets only
+    const blanks     = blanksByMH[name] || 0;
+    const distScale  = totT > 0 ? (totT + blanks) / totT : 1;
+    const totF_dist  = Math.ceil(totF * distScale);
 
-    gtTotF  += totF;
+    // MH Req: distributed flyers × 1.16
+    const adjF = adjMH(totF_dist);
+
+    // Monthly: scale the 1.16x value, then ×1.5
+    const monTIDs = scaleFactor ? Math.round((totT + blanks) * scaleFactor) : null;
+    const monF    = scaleFactor ? Math.ceil(adjF * scaleFactor)             : null;
+    const monAdj  = monF !== null ? adjMo(monF)                             : null;
+
+    gtTotF  += totF_dist;
     gtAdjF  += adjF;
     if (monF    !== null) gtMonF    += monF;
     if (monAdj  !== null) gtMonAdj  += monAdj;
     if (monTIDs !== null) gtMonTIDs += monTIDs;
 
-    assetData.push({ name, totT, totF, adjF, monTIDs, monF, monAdj });
+    assetData.push({ name, totT, totF, totF_dist, blanks, adjF, monTIDs, monF, monAdj });
   }
 
   assetData.sort((a, b) => b.adjF - a.adjF);
@@ -648,6 +680,7 @@ function compute(rows) {
   GT = {
     totalRows: rows.length, processed, skipOFN, skipDir, skipMH, skipDM, skipAH,
     totalSkipped: skipOFN + skipDir + skipMH + skipDM + skipAH,
+    distributedBlanks: skipDM + skipAH,
     assets: assetData.length, gtTotF, gtAdjF, gtMonF, gtMonAdj, gtMonTIDs,
     daysInData, dailyRate, monthlyTIDs, scaleFactor
   };
@@ -669,8 +702,8 @@ function showDash() {
       GT.skipOFN && ['wa',  'BLANK origin_facility_name', GT.skipOFN, 'no origin to map'],
       GT.skipDir && ['wa',  'NOT IN DIRECTORY',           GT.skipDir, 'facility not mapped to an MH'],
       GT.skipMH  && ['bad', 'BLANK mh_name',              GT.skipMH,  'fallback mode — no origin'],
-      GT.skipDM  && ['bad', 'BLANK destination_mh',       GT.skipDM,  'routing unknown'],
-      GT.skipAH  && ['bad', 'BLANK Assigned_hub',         GT.skipAH,  'delivery hub unknown'],
+      GT.skipDM  && ['wa', 'BLANK destination_mh',       GT.skipDM,  'proportionally distributed to origin MH'],
+      GT.skipAH  && ['wa', 'BLANK Assigned_hub',         GT.skipAH,  'proportionally distributed to origin MH'],
     ].filter(Boolean);
     sb.innerHTML = `<div class="sbt">⚠ ${GT.totalSkipped.toLocaleString()} rows skipped (${pct}% of ${GT.totalRows.toLocaleString()} total)</div>`
       + rows.map(([cls, lbl, cnt, reason]) =>
@@ -684,7 +717,7 @@ function showDash() {
     <div class="kpi y">
       <div class="n">${GT.gtAdjF.toLocaleString()}</div>
       <div class="l">Total Flyer Req</div>
-      <div class="sub">${GT.gtTotF.toLocaleString()} flyers × 1.16 × 1.5</div>
+      <div class="sub">${GT.gtTotF.toLocaleString()} dist. flyers × 1.16</div>
     </div>
     <div class="kpi c">
       <div class="n">${GT.gtMonAdj !== null ? GT.gtMonAdj.toLocaleString() : '—'}</div>
@@ -716,7 +749,7 @@ function showDash() {
     `;
   }
 
-  document.getElementById('table-meta').textContent = `${assetData.length} assets · per-asset ×1.16 ×1.5 · ${GT.daysInData ? GT.daysInData + '-day basis' : 'no date col'}`;
+  document.getElementById('table-meta').textContent = `${assetData.length} assets · MH Req ×1.16 · Monthly Req ×1.5 on 1.16x · ${GT.distributedBlanks.toLocaleString()} blanks distributed · ${GT.daysInData ? GT.daysInData + '-day basis' : 'no date col'}`;
   renderTable(assetData);
   renderFooter();
 }
@@ -771,7 +804,7 @@ function renderFooter() {
    CSV DOWNLOAD
 ═══════════════════════════════════════════ */
 function downloadCSV() {
-  const header = ['MH Name','MH Req (×1.16×1.5)','Monthly Est TIDs','Monthly Flyers','Monthly Req (×1.16×1.5)'];
+  const header = ['MH Name','MH Req (×1.16)','Monthly Est TIDs','Monthly Flyers (1.16x basis)','Monthly Req (×1.5)'];
   const rows = assetData.map(a => [
     a.name, a.adjF,
     a.monTIDs !== null ? a.monTIDs : '',
