@@ -378,13 +378,12 @@ tr.GR td:first-child { text-align: left; font-family: var(--font); font-size: 13
       <table class="mt" id="main-table">
         <thead>
           <tr>
-            <th rowspan="2" style="vertical-align:bottom;text-align:left;min-width:200px">MH Asset</th>
-            <th class="gh" colspan="2" style="border-bottom:1px solid var(--border)">Computed (current data)</th>
+            <th rowspan="2" style="vertical-align:bottom;text-align:left;min-width:200px">MH Name</th>
+            <th class="gh" colspan="1" style="border-bottom:1px solid var(--border)">Current Data</th>
             <th class="gh" colspan="3" style="border-bottom:1px solid var(--border)">Monthly Estimate (×30 days)</th>
           </tr>
           <tr>
-            <th class="sub gl">Total Flyers</th>
-            <th class="sub">Asset Req <span style="font-size:9px;opacity:.7">×1.16</span></th>
+            <th class="sub gl">MH Req <span style="font-size:9px;opacity:.7">×1.16</span></th>
             <th class="sub gl">Est. TIDs / mo</th>
             <th class="sub">Monthly Flyers</th>
             <th class="sub">Monthly Req <span style="font-size:9px;opacity:.7">×1.16</span></th>
@@ -685,8 +684,8 @@ function showDash() {
   document.getElementById('kpi-bar').innerHTML = `
     <div class="kpi y">
       <div class="n">${GT.gtAdjF.toLocaleString()}</div>
-      <div class="l">Total Asset Req</div>
-      <div class="sub">${GT.gtTotF.toLocaleString()} raw flyers × 1.16</div>
+      <div class="l">Total Flyer Req</div>
+      <div class="sub">${GT.gtTotF.toLocaleString()} flyers × 1.16</div>
     </div>
     <div class="kpi c">
       <div class="n">${GT.gtMonAdj !== null ? GT.gtMonAdj.toLocaleString() : '—'}</div>
@@ -715,12 +714,10 @@ function showDash() {
       <div class="mbar-item"><div class="ml">Avg / day</div><div class="mv" style="color:var(--muted)">${Math.round(GT.dailyRate).toLocaleString()}</div></div>
       <div class="mbar-sep"></div>
       <div class="mbar-item"><div class="ml">Est. TIDs / month</div><div class="mv">${GT.monthlyTIDs.toLocaleString()}</div></div>
-      <div class="mbar-sep"></div>
-      <div class="mbar-item"><div class="ml">Scale factor</div><div class="mv" style="color:var(--muted)">${GT.scaleFactor.toFixed(2)}×</div></div>
     `;
   }
 
-  document.getElementById('table-meta').textContent = `${assetData.length} assets · ×1.16 adj · ${GT.daysInData ? GT.daysInData + '-day basis' : 'no date col'}`;
+  document.getElementById('table-meta').textContent = `${assetData.length} assets · ×1.16 · ${GT.daysInData ? GT.daysInData + '-day basis' : 'no date col'}`;
   renderTable(assetData);
   renderFooter();
 }
@@ -734,17 +731,14 @@ const gc = n => { if (!COL[n]) COL[n] = PAL[CI++ % PAL.length]; return COL[n]; }
 
 function renderTable(data) {
   const tb = document.getElementById('main-tbody');
-  const hasMonthly = data.some(a => a.monAdj !== null);
-
   let html = '';
-  const G = { totF:0, adjF:0, monTIDs:0, monF:0, monAdj:0 };
-  data.forEach(a => { G.totF+=a.totF; G.adjF+=a.adjF; G.monTIDs+=(a.monTIDs||0); G.monF+=(a.monF||0); G.monAdj+=(a.monAdj||0); });
+  const G = { adjF:0, monTIDs:0, monF:0, monAdj:0 };
+  data.forEach(a => { G.adjF+=a.adjF; G.monTIDs+=(a.monTIDs||0); G.monF+=(a.monF||0); G.monAdj+=(a.monAdj||0); });
 
   data.forEach(a => {
     html += `<tr>
       <td><div class="anc"><div class="dot" style="background:${gc(a.name)}"></div><span class="an">${a.name}</span></div></td>
-      <td class="gl raw">${a.totF.toLocaleString()}</td>
-      <td><span class="b y">${a.adjF}</span></td>
+      <td class="gl"><span class="b y">${a.adjF}</span></td>
       <td class="gl dim">${a.monTIDs !== null ? a.monTIDs.toLocaleString() : '—'}</td>
       <td class="raw">${a.monF !== null ? a.monF.toLocaleString() : '—'}</td>
       <td>${a.monAdj !== null ? `<span class="b c">${a.monAdj}</span>` : '<span style="color:var(--muted2)">—</span>'}</td>
@@ -752,9 +746,8 @@ function renderTable(data) {
   });
 
   html += `<tr class="GR">
-    <td>TOTAL · ${data.length} ASSETS</td>
-    <td class="gl">${G.totF.toLocaleString()}</td>
-    <td>${G.adjF.toLocaleString()}</td>
+    <td>TOTAL · ${data.length} MH ASSETS</td>
+    <td class="gl">${G.adjF.toLocaleString()}</td>
     <td class="gl">${G.monTIDs ? G.monTIDs.toLocaleString() : '—'}</td>
     <td>${G.monF ? G.monF.toLocaleString() : '—'}</td>
     <td>${G.monAdj ? G.monAdj.toLocaleString() : '—'}</td>
@@ -765,13 +758,11 @@ function renderTable(data) {
 
 function renderFooter() {
   document.getElementById('gfooter').innerHTML = `
-    <div class="gt"><div class="gl">Total Asset Req</div><div class="gv">${GT.gtAdjF.toLocaleString()}</div></div>
+    <div class="gt"><div class="gl">Total Flyer Req</div><div class="gv">${GT.gtAdjF.toLocaleString()}</div></div>
     <div class="gts"></div>
     <div class="gt"><div class="gl">Monthly Req</div><div class="gv blue sm">${GT.gtMonAdj !== null ? GT.gtMonAdj.toLocaleString() : '—'}</div></div>
     <div class="gts"></div>
-    <div class="gt"><div class="gl">Raw Flyers</div><div class="gv sm" style="color:var(--muted2)">${GT.gtTotF.toLocaleString()}</div></div>
-    <div class="gts"></div>
-    <div class="gt"><div class="gl">Assets</div><div class="gv sm" style="color:var(--g)">${GT.assets}</div></div>
+    <div class="gt"><div class="gl">MH Assets</div><div class="gv sm" style="color:var(--g)">${GT.assets}</div></div>
     <div class="gts"></div>
     <div class="gt"><div class="gl">Skipped</div><div class="gv sm" style="color:var(--r)">${GT.totalSkipped}</div></div>
   `;
@@ -781,9 +772,9 @@ function renderFooter() {
    CSV DOWNLOAD
 ═══════════════════════════════════════════ */
 function downloadCSV() {
-  const header = ['MH Asset','Total Flyers (raw)','Asset Req (×1.16)','Monthly Est TIDs','Monthly Flyers','Monthly Req (×1.16)'];
+  const header = ['MH Name','MH Req (×1.16)','Monthly Est TIDs','Monthly Flyers','Monthly Req (×1.16)'];
   const rows = assetData.map(a => [
-    a.name, a.totF, a.adjF,
+    a.name, a.adjF,
     a.monTIDs !== null ? a.monTIDs : '',
     a.monF    !== null ? a.monF    : '',
     a.monAdj  !== null ? a.monAdj  : ''
@@ -791,13 +782,12 @@ function downloadCSV() {
 
   // Grand total row
   const G = assetData.reduce((acc, a) => ({
-    totF: acc.totF + a.totF,
-    adjF: acc.adjF + a.adjF,
-    monTIDs: acc.monTIDs + (a.monTIDs || 0),
-    monF:    acc.monF    + (a.monF    || 0),
-    monAdj:  acc.monAdj  + (a.monAdj  || 0),
-  }), { totF:0, adjF:0, monTIDs:0, monF:0, monAdj:0 });
-  rows.push(['TOTAL', G.totF, G.adjF, G.monTIDs||'', G.monF||'', G.monAdj||'']);
+    adjF:   acc.adjF   + a.adjF,
+    monTIDs:acc.monTIDs+ (a.monTIDs || 0),
+    monF:   acc.monF   + (a.monF    || 0),
+    monAdj: acc.monAdj + (a.monAdj  || 0),
+  }), { adjF:0, monTIDs:0, monF:0, monAdj:0 });
+  rows.push(['TOTAL', G.adjF, G.monTIDs||'', G.monF||'', G.monAdj||'']);
 
   const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
