@@ -383,10 +383,10 @@ tr.GR td:first-child { text-align: left; font-family: var(--font); font-size: 13
             <th class="gh" colspan="3" style="border-bottom:1px solid var(--border)">Monthly Estimate (×30 days)</th>
           </tr>
           <tr>
-            <th class="sub gl">MH Req <span style="font-size:9px;opacity:.7">equal ×1.5</span></th>
+            <th class="sub gl">MH Req <span style="font-size:9px;opacity:.7">×1.16 ×1.5</span></th>
             <th class="sub gl">Est. TIDs / mo</th>
             <th class="sub">Monthly Flyers</th>
-            <th class="sub">Monthly Req <span style="font-size:9px;opacity:.7">equal ×1.5</span></th>
+            <th class="sub">Monthly Req <span style="font-size:9px;opacity:.7">×1.16 ×1.5</span></th>
           </tr>
         </thead>
         <tbody id="main-tbody"></tbody>
@@ -401,9 +401,11 @@ tr.GR td:first-child { text-align: left; font-family: var(--font); font-size: 13
 /* ═══════════════════════════════════════════
    CONSTANTS
 ═══════════════════════════════════════════ */
-const FLYER_CAP   = 80;
-const UPSCALE     = 1.5;   // 50% buffer on equal share
+const FLYER_CAP  = 80;
+const ADJ_FACTOR = 1.16;  // base upscale
+const UPSCALE    = 1.5;   // additional 50% on top, per asset
 const fc  = n => Math.ceil(n / FLYER_CAP);
+const adj = n => Math.ceil(Math.ceil(n * ADJ_FACTOR) * UPSCALE);  // ×1.16 then ×1.5
 const isMH = s => typeof s === 'string' && s.toLowerCase().startsWith('motherhub');
 
 /* ═══════════════════════════════════════════
@@ -612,11 +614,10 @@ function compute(rows) {
     a.c2sub = o.c2sub;
   }
 
-  // Build assetData
+  // Build assetData — per-asset: ×1.16 then ×1.5
   assetData = [];
-  let gtTotF=0, gtMonF=0, gtMonTIDs=0;
+  let gtTotF=0, gtAdjF=0, gtMonF=0, gtMonAdj=0, gtMonTIDs=0;
 
-  // First pass: collect raw totals
   for (const [name, a] of ent(PA)) {
     ['c1T','c2T','c3T','c1F','c2F','c3F'].forEach(k => { if (!a[k]) a[k]=0; });
 
@@ -625,42 +626,29 @@ function compute(rows) {
       for (const [, n] of ent(ahMap)) { rT+=n; rF+=fc(n); }
     }
 
-    const totT = a.c1T + a.c2T + a.c3T + rT;
-    const totF = a.c1F + a.c2F + a.c3F + rF;
+    const totT  = a.c1T + a.c2T + a.c3T + rT;
+    const totF  = a.c1F + a.c2F + a.c3F + rF;
+    const adjF  = adj(totF);
+
     const monTIDs = scaleFactor ? Math.round(totT * scaleFactor) : null;
     const monF    = scaleFactor ? Math.ceil(totF * scaleFactor)  : null;
+    const monAdj  = monF !== null ? adj(monF) : null;
 
-    gtTotF    += totF;
+    gtTotF  += totF;
+    gtAdjF  += adjF;
     if (monF    !== null) gtMonF    += monF;
+    if (monAdj  !== null) gtMonAdj  += monAdj;
     if (monTIDs !== null) gtMonTIDs += monTIDs;
 
-    assetData.push({ name, totT, totF, monTIDs, monF });
+    assetData.push({ name, totT, totF, adjF, monTIDs, monF, monAdj });
   }
 
-  // Equal distribution + 50% upscale (applied after all assets are known)
-  const numAssets    = assetData.length || 1;
-  const equalShare   = gtTotF / numAssets;
-  const perAssetReq  = Math.ceil(equalShare * UPSCALE);
-
-  const equalShareMon  = gtMonF > 0 ? gtMonF / numAssets : null;
-  const perAssetMonReq = equalShareMon !== null ? Math.ceil(equalShareMon * UPSCALE) : null;
-
-  const gtAdjF   = perAssetReq  * numAssets;
-  const gtMonAdj = perAssetMonReq !== null ? perAssetMonReq * numAssets : null;
-
-  // Stamp equal values onto every asset
-  assetData.forEach(a => {
-    a.adjF   = perAssetReq;
-    a.monAdj = perAssetMonReq;
-  });
-
-  assetData.sort((a, b) => a.name.localeCompare(b.name));
+  assetData.sort((a, b) => b.adjF - a.adjF);
 
   GT = {
     totalRows: rows.length, processed, skipOFN, skipDir, skipMH, skipDM, skipAH,
     totalSkipped: skipOFN + skipDir + skipMH + skipDM + skipAH,
-    assets: numAssets, gtTotF, gtAdjF, gtMonF, gtMonAdj, gtMonTIDs,
-    equalShare: Math.round(equalShare), perAssetReq, perAssetMonReq,
+    assets: assetData.length, gtTotF, gtAdjF, gtMonF, gtMonAdj, gtMonTIDs,
     daysInData, dailyRate, monthlyTIDs, scaleFactor
   };
 }
@@ -696,7 +684,7 @@ function showDash() {
     <div class="kpi y">
       <div class="n">${GT.gtAdjF.toLocaleString()}</div>
       <div class="l">Total Flyer Req</div>
-      <div class="sub">${GT.equalShare.toLocaleString()} avg / asset × 1.5</div>
+      <div class="sub">${GT.gtTotF.toLocaleString()} flyers × 1.16 × 1.5</div>
     </div>
     <div class="kpi c">
       <div class="n">${GT.gtMonAdj !== null ? GT.gtMonAdj.toLocaleString() : '—'}</div>
@@ -728,7 +716,7 @@ function showDash() {
     `;
   }
 
-  document.getElementById('table-meta').textContent = `${assetData.length} assets · equal dist. × 1.5 · ${GT.daysInData ? GT.daysInData + '-day basis' : 'no date col'}`;
+  document.getElementById('table-meta').textContent = `${assetData.length} assets · per-asset ×1.16 ×1.5 · ${GT.daysInData ? GT.daysInData + '-day basis' : 'no date col'}`;
   renderTable(assetData);
   renderFooter();
 }
@@ -783,7 +771,7 @@ function renderFooter() {
    CSV DOWNLOAD
 ═══════════════════════════════════════════ */
 function downloadCSV() {
-  const header = ['MH Name','MH Req (equal ×1.5)','Monthly Est TIDs','Monthly Flyers','Monthly Req (equal ×1.5)'];
+  const header = ['MH Name','MH Req (×1.16×1.5)','Monthly Est TIDs','Monthly Flyers','Monthly Req (×1.16×1.5)'];
   const rows = assetData.map(a => [
     a.name, a.adjF,
     a.monTIDs !== null ? a.monTIDs : '',
