@@ -5,312 +5,345 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Asset-level Flyer Mapper</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Barlow+Condensed:wght@400;600;700;800;900&display=swap');
+:root {
+  --bg:    #f2f0eb;
+  --white: #ffffff;
+  --s2:    #ece9e2;
+  --s3:    #e4e0d7;
+  --border:  #d8d3c8;
+  --border2: #c5bfb2;
+  --text:    #1a1814;
+  --muted:   #6b6358;
+  --muted2:  #9c9790;
 
-  :root {
-    --bg:#07080b; --s1:#0e1017; --s2:#13161f; --s3:#1a1e2a; --s4:#1f2539;
-    --border:#222636; --border2:#2e3347;
-    --y:#f5c842; --c:#38d9d9; --g:#42d68a; --r:#e05252; --o:#f07030; --p:#b07aff;
-    --text:#cdd4e8; --muted:#4e576e; --muted2:#6a7488;
-  }
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-serif;min-height:100vh;}
+  --y:  #b45309;
+  --c:  #0369a1;
+  --g:  #15803d;
+  --r:  #b91c1c;
+  --o:  #c2410c;
+  --p:  #6d28d9;
 
-  /* ── Header ── */
-  header{background:var(--s1);border-bottom:2px solid var(--y);padding:13px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:300;}
-  .hlogo{display:flex;flex-direction:column;gap:2px;}
-  header h1{font-size:20px;font-weight:900;letter-spacing:4px;text-transform:uppercase;color:var(--y);}
-  header small{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:2px;}
-  #header-dir-status{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted2);background:var(--s2);border:1px solid var(--border);border-radius:3px;padding:4px 10px;}
-  #header-dir-status b{color:var(--g);}
+  --y-bg: #fef3c7; --y-bd: #fcd34d;
+  --c-bg: #e0f2fe; --c-bd: #7dd3fc;
+  --g-bg: #dcfce7; --g-bd: #86efac;
+  --r-bg: #fee2e2; --r-bd: #fca5a5;
 
-  /* ══════════════════ UPLOAD STAGE ══════════════════ */
-  #stage-upload{display:flex;flex-direction:column;align-items:center;gap:14px;padding:40px 20px 80px;}
+  --font:  'Work Sans', system-ui, sans-serif;
+  --mono:  'JetBrains Mono', monospace;
+  --r-sm: 5px; --r-md: 10px; --r-lg: 14px;
+  --shadow: 0 1px 3px rgba(0,0,0,.07), 0 4px 14px rgba(0,0,0,.05);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.06);
+}
 
-  /* main shipment upload */
-  .upload-card{background:var(--s1);border:1px solid var(--border);border-radius:6px;width:100%;max-width:780px;}
-  .uc-head{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
-  .uc-badge{font-size:9px;font-weight:700;letter-spacing:2px;padding:3px 8px;border-radius:2px;text-transform:uppercase;}
-  .uc-badge.req{background:rgba(245,200,66,.15);border:1px solid rgba(245,200,66,.4);color:var(--y);}
-  .uc-badge.opt{background:rgba(56,217,217,.1);border:1px solid rgba(56,217,217,.3);color:var(--c);}
-  .uc-head h2{font-size:16px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text);}
-  .uc-head p{font-size:12px;color:var(--muted);margin-left:auto;font-family:'IBM Plex Mono',monospace;}
-  .uc-body{padding:20px;}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; line-height: 1.55; min-height: 100vh; -webkit-font-smoothing: antialiased; }
 
-  /* drop zones */
-  .dz{border:2px dashed var(--border2);border-radius:5px;padding:28px 24px;text-align:center;cursor:pointer;position:relative;transition:all .2s;}
-  .dz:hover,.dz.drag{border-color:var(--y);background:rgba(245,200,66,.03);}
-  .dz.teal:hover,.dz.teal.drag{border-color:var(--c);background:rgba(56,217,217,.03);}
-  .dz input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
-  .dz .dz-icon{font-size:32px;display:block;margin-bottom:10px;}
-  .dz h3{font-size:16px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px;}
-  .dz p{color:var(--muted);font-size:11px;letter-spacing:.5px;line-height:1.8;}
-  code{background:var(--s3);color:var(--y);padding:1px 5px;border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:10px;}
-  code.teal{color:var(--c);}
+/* ── Header ── */
+header {
+  background: var(--white);
+  border-bottom: 2px solid var(--y);
+  padding: 0 32px;
+  height: 58px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 200;
+  box-shadow: var(--shadow-sm);
+}
+.hlogo { display: flex; flex-direction: column; gap: 2px; }
+header h1 { font-size: 18px; font-weight: 800; color: var(--text); letter-spacing: -0.3px; }
+header h1 em { color: var(--y); font-style: normal; }
+header small { font-family: var(--mono); font-size: 9px; color: var(--muted2); letter-spacing: 1.5px; text-transform: uppercase; }
+#hdr-status { font-family: var(--mono); font-size: 11px; color: var(--muted); background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 5px 12px; }
+#hdr-status b { color: var(--g); }
 
-  /* mapping upload section toggle */
-  .map-toggle{display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px 20px;border-top:1px solid var(--border);user-select:none;color:var(--muted2);font-size:12px;letter-spacing:2px;text-transform:uppercase;transition:color .15s;}
-  .map-toggle:hover{color:var(--text);}
-  .map-toggle .arr{font-size:10px;transition:transform .2s;}
-  .map-toggle.open .arr{transform:rotate(90deg);}
-  .map-body{display:none;padding:0 20px 20px;}
-  .map-body.open{display:block;}
+/* ── Upload stage ── */
+#stage-upload {
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  padding: 48px 20px 80px;
+}
+.card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--r-lg); width: 100%; max-width: 720px;
+  box-shadow: var(--shadow); overflow: hidden;
+}
+.card-head {
+  background: var(--bg); border-bottom: 1px solid var(--border);
+  padding: 15px 22px; display: flex; align-items: center; gap: 10px;
+}
+.badge { font-family: var(--font); font-size: 9px; font-weight: 700; letter-spacing: 1.5px; padding: 3px 9px; border-radius: 3px; text-transform: uppercase; }
+.badge.req { background: var(--y-bg); border: 1px solid var(--y-bd); color: var(--y); }
+.badge.opt { background: var(--c-bg); border: 1px solid var(--c-bd); color: var(--c); }
+.card-head h2 { font-size: 16px; font-weight: 700; color: var(--text); }
+.card-head p { font-family: var(--mono); font-size: 11px; color: var(--muted2); margin-left: auto; }
+.card-body { padding: 20px 22px; }
 
-  /* columns spec */
-  .col-spec{background:var(--s2);border:1px solid var(--border);border-radius:4px;padding:12px 15px;margin-bottom:14px;font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.9;}
-  .col-spec .cs-title{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--c);text-transform:uppercase;margin-bottom:6px;}
-  .col-spec .cr{display:flex;align-items:center;gap:10px;}
-  .col-spec .cr .col-name{color:var(--y);min-width:200px;}
-  .col-spec .cr .col-desc{color:var(--muted2);}
-  .col-spec .cr .col-req{font-size:9px;padding:2px 6px;border-radius:2px;font-weight:700;}
-  .col-spec .cr .col-req.r{background:rgba(245,200,66,.15);border:1px solid rgba(245,200,66,.35);color:var(--y);}
-  .col-spec .cr .col-req.o{background:rgba(56,217,217,.1);border:1px solid rgba(56,217,217,.25);color:var(--c);}
+/* col spec */
+.col-spec {
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-md);
+  padding: 13px 16px; margin-bottom: 14px; font-size: 12px; line-height: 2;
+}
+.cs-title { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: var(--c); text-transform: uppercase; margin-bottom: 7px; }
+.cr { display: flex; align-items: center; gap: 10px; padding: 1px 0; }
+.col-name { font-family: var(--mono); font-size: 11px; color: var(--text); font-weight: 500; min-width: 210px; }
+.col-desc { color: var(--muted); font-size: 12px; }
+.col-req { font-size: 9px; padding: 2px 6px; border-radius: 3px; font-weight: 700; letter-spacing: 0.5px; white-space: nowrap; }
+.col-req.r { background: var(--y-bg); border: 1px solid var(--y-bd); color: var(--y); }
+.col-req.o { background: var(--c-bg); border: 1px solid var(--c-bd); color: var(--c); }
+.col-note { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); color: var(--muted); font-size: 11px; line-height: 1.7; }
 
-  /* mapping status */
-  #map-status{margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:10px;display:none;}
-  .map-ok{color:var(--g);}
-  .map-line{display:flex;align-items:center;gap:8px;margin-top:4px;color:var(--muted2);}
-  .map-line b{color:var(--g);}
-  .map-line .warn{color:var(--o);}
+code { font-family: var(--mono); font-size: 11px; background: var(--y-bg); color: var(--y); padding: 1px 5px; border-radius: 3px; border: 1px solid var(--y-bd); }
+code.c { background: var(--c-bg); color: var(--c); border-color: var(--c-bd); }
 
-  /* parse status */
-  .ps{margin-top:12px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);display:none;}
-  .pbar{background:var(--border);height:3px;border-radius:2px;margin-top:6px;overflow:hidden;}
-  .pbar-fill{height:100%;background:var(--y);width:0%;transition:width .2s;}
+/* drop zone */
+.dz {
+  border: 2px dashed var(--border2); border-radius: var(--r-md);
+  padding: 30px 24px; text-align: center; cursor: pointer;
+  position: relative; transition: all .2s; background: var(--bg);
+}
+.dz:hover, .dz.drag { border-color: var(--y); background: var(--y-bg); }
+.dz.teal:hover, .dz.teal.drag { border-color: var(--c); background: var(--c-bg); }
+.dz input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.dz .icon { font-size: 30px; display: block; margin-bottom: 10px; }
+.dz h3 { font-size: 16px; font-weight: 700; margin-bottom: 5px; }
+.dz p { font-size: 13px; color: var(--muted); line-height: 1.7; }
 
-  /* ══════════════════ DASHBOARD ══════════════════ */
-  #stage-dash{display:none;}
-  main{max-width:1500px;margin:0 auto;padding:18px 20px 22px;}
+/* mapping toggle */
+.map-toggle {
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+  padding: 13px 22px; border-top: 1px solid var(--border);
+  user-select: none; color: var(--muted); font-size: 13px; font-weight: 500;
+  transition: color .15s, background .15s;
+}
+.map-toggle:hover { color: var(--text); background: var(--bg); }
+.map-toggle .arr { font-size: 10px; transition: transform .2s; color: var(--muted2); }
+.map-toggle.open .arr { transform: rotate(90deg); }
+.map-body { display: none; padding: 0 22px 20px; }
+.map-body.open { display: block; }
+#map-status { margin-top: 10px; font-family: var(--mono); font-size: 11px; display: none; color: var(--g); }
 
-  /* skip banner */
-  #skip-banner{display:none;background:var(--s2);border:1px solid var(--border2);border-left:3px solid var(--r);border-radius:4px;padding:10px 16px;margin-bottom:13px;font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:2;}
-  #skip-banner .sbt{font-size:11px;font-weight:700;color:var(--r);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;}
-  #skip-banner .sbr{display:flex;align-items:center;gap:9px;color:var(--muted2);}
-  .stag{font-size:9px;padding:2px 7px;border-radius:2px;white-space:nowrap;font-weight:700;letter-spacing:1px;}
-  .stag.bad{background:rgba(224,82,82,.12);border:1px solid rgba(224,82,82,.3);color:var(--r);}
-  .stag.ok{background:rgba(66,214,138,.10);border:1px solid rgba(66,214,138,.25);color:var(--g);}
-  .stag.wa{background:rgba(240,112,48,.12);border:1px solid rgba(240,112,48,.3);color:var(--o);}
+/* parse bar */
+.ps { margin-top: 12px; font-family: var(--mono); font-size: 11px; color: var(--muted); display: none; }
+.pbar { background: var(--s3); height: 3px; border-radius: 2px; margin-top: 7px; overflow: hidden; }
+.pbar-fill { height: 100%; background: var(--y); width: 0%; transition: width .2s; }
 
-  /* KPI */
-  #kpi-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:9px;margin-bottom:13px;}
-  .kpi{background:var(--s1);border:1px solid var(--border);border-radius:4px;padding:13px 14px;position:relative;overflow:hidden;}
-  .kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
-  .kpi.y::after{background:var(--y);}.kpi.c::after{background:var(--c);}.kpi.g::after{background:var(--g);}
-  .kpi.o::after{background:var(--o);}.kpi.p::after{background:var(--p);}.kpi.r::after{background:var(--r);}
-  .kpi .n{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:700;line-height:1;}
-  .kpi.y .n{color:var(--y);}.kpi.c .n{color:var(--c);}.kpi.g .n{color:var(--g);}
-  .kpi.o .n{color:var(--o);}.kpi.p .n{color:var(--p);}.kpi.r .n{color:var(--r);}
-  .kpi .l{font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-top:4px;}
-  .kpi .sub{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;}
+/* ── Dashboard ── */
+#stage-dash { display: none; }
+main { max-width: 1200px; margin: 0 auto; padding: 24px 22px 80px; }
 
-  /* Tabs */
-  #tab-bar{display:flex;border-bottom:1px solid var(--border);margin-bottom:13px;}
-  .tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:7px 16px 9px;cursor:pointer;margin-bottom:-1px;transition:color .15s,border-color .15s;}
-  .tab:hover{color:var(--text);}.tab.active{color:var(--y);border-bottom-color:var(--y);}
-  .panel{display:none;}.panel.active{display:block;}
+/* kpi row */
+#kpi-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px; margin-bottom: 24px;
+}
+.kpi {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 18px 20px;
+  position: relative; overflow: hidden;
+  box-shadow: var(--shadow-sm); transition: box-shadow .15s;
+}
+.kpi:hover { box-shadow: var(--shadow); }
+.kpi::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
+  height: 3px; border-radius: var(--r-md) var(--r-md) 0 0;
+}
+.kpi.y::before { background: var(--y); }
+.kpi.g::before { background: var(--g); }
+.kpi.c::before { background: var(--c); }
+.kpi.r::before { background: var(--r); }
+.kpi .n {
+  font-family: var(--mono); font-size: 36px; font-weight: 700;
+  line-height: 1; letter-spacing: -1.5px;
+}
+.kpi.y .n { color: var(--y); }
+.kpi.g .n { color: var(--g); }
+.kpi.c .n { color: var(--c); }
+.kpi.r .n { color: var(--r); }
+.kpi .l { font-size: 12px; font-weight: 600; letter-spacing: 0.4px; color: var(--muted); text-transform: uppercase; margin-top: 6px; }
+.kpi .sub { font-family: var(--mono); font-size: 10px; color: var(--muted2); margin-top: 4px; line-height: 1.6; }
 
-  /* filter bar */
-  .fbar{display:flex;gap:9px;align-items:center;margin-bottom:11px;flex-wrap:wrap;}
-  .sbox{background:var(--s2);border:1px solid var(--border2);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 12px;border-radius:3px;outline:none;min-width:200px;transition:border-color .15s;}
-  .sbox:focus{border-color:var(--y);}.sbox::placeholder{color:var(--muted);}
-  .fnote{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
+/* monthly info bar */
+#monthly-bar {
+  display: none;
+  background: var(--white); border: 1px solid var(--border);
+  border-left: 4px solid var(--c);
+  border-radius: var(--r-md); padding: 14px 20px;
+  margin-bottom: 20px;
+  font-size: 13px; color: var(--muted);
+  box-shadow: var(--shadow-sm);
+  display: none; align-items: center; gap: 24px; flex-wrap: wrap;
+}
+.mbar-item { display: flex; flex-direction: column; gap: 2px; }
+.mbar-item .ml { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--muted2); text-transform: uppercase; }
+.mbar-item .mv { font-family: var(--mono); font-size: 18px; font-weight: 700; color: var(--c); }
+.mbar-sep { width: 1px; height: 28px; background: var(--border); }
 
-  /* ── Collapsible tree table ── */
-  .tw{overflow-x:auto;border:1px solid var(--border);border-radius:5px;}
-  table.at{width:100%;border-collapse:collapse;}
-  table.at thead tr:first-child{background:var(--s2);}
-  table.at thead tr:last-child{background:var(--s3);}
-  table.at thead th{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);text-align:right;padding:8px 11px;text-transform:uppercase;white-space:nowrap;border-bottom:1px solid var(--border2);}
-  table.at thead th:first-child{text-align:left;}
-  table.at thead th.gh{text-align:center;border-left:1px solid var(--border2);}
-  table.at thead th.sub{font-weight:400;font-size:8px;letter-spacing:1px;}
+/* skip banner */
+#skip-banner {
+  display: none;
+  background: var(--r-bg); border: 1px solid var(--r-bd);
+  border-left: 4px solid var(--r); border-radius: var(--r-md);
+  padding: 14px 18px; margin-bottom: 20px;
+  font-size: 13px; line-height: 2;
+}
+.sbt { font-size: 13px; font-weight: 700; color: var(--r); margin-bottom: 4px; }
+.sbr { display: flex; align-items: center; gap: 10px; color: var(--muted); }
+.stag { font-size: 10px; padding: 2px 8px; border-radius: 3px; white-space: nowrap; font-weight: 700; letter-spacing: 0.3px; }
+.stag.bad { background: var(--r-bg); border: 1px solid var(--r-bd); color: var(--r); }
+.stag.ok  { background: var(--g-bg); border: 1px solid var(--g-bd); color: var(--g); }
+.stag.wa  { background: #fef9c3; border: 1px solid #fde047; color: #a16207; }
 
-  tr.L0{border-top:1px solid var(--border);cursor:pointer;transition:background .1s;}
-  tr.L0:hover{background:rgba(255,255,255,.025);}
-  tr.L0 td{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:9px 11px;vertical-align:middle;text-align:right;}
-  tr.L0 td:first-child{text-align:left;}
-  tr.L0 td.gl{border-left:1px solid var(--border);}
+/* table section */
+.table-head-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px; flex-wrap: wrap; gap: 10px;
+}
+.section-title { font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: -0.1px; }
+.section-title span { font-family: var(--mono); font-size: 12px; color: var(--muted2); font-weight: 400; margin-left: 8px; }
 
-  tr.L1{background:var(--s2);border-top:1px solid var(--border);cursor:pointer;}
-  tr.L1:hover{background:var(--s3);}
-  tr.L1 td{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:7px 11px;vertical-align:middle;color:var(--muted2);}
-  tr.L1 td:first-child{padding-left:24px;}
+/* download button */
+.dl-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--white); border: 1.5px solid var(--border);
+  color: var(--text); font-family: var(--font); font-size: 13px;
+  font-weight: 600; padding: 7px 16px; border-radius: var(--r-sm);
+  cursor: pointer; transition: all .15s; text-decoration: none;
+}
+.dl-btn:hover { border-color: var(--y); color: var(--y); background: var(--y-bg); }
 
-  tr.L2{background:var(--s1);border-top:1px solid var(--border);}
-  tr.L2:hover{background:rgba(255,255,255,.015);}
-  tr.L2 td{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:5px 11px;vertical-align:middle;color:var(--muted2);text-align:right;}
-  tr.L2 td:first-child{text-align:left;padding-left:40px;}
+/* table */
+.tw { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-sm); }
+table.mt { width: 100%; border-collapse: collapse; background: var(--white); }
+table.mt thead tr:first-child { background: var(--s2); }
+table.mt thead tr:last-child  { background: var(--s3); }
+table.mt thead th {
+  font-family: var(--font); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.5px; color: var(--muted);
+  padding: 10px 16px; text-transform: uppercase; white-space: nowrap;
+  border-bottom: 1px solid var(--border); text-align: right;
+}
+table.mt thead th:first-child { text-align: left; }
+table.mt thead th.gh { text-align: center; border-left: 1px solid var(--border); }
+table.mt thead th.sub { font-weight: 500; font-size: 10px; letter-spacing: 0.3px; }
 
-  tr.L3{background:var(--bg);border-top:1px solid var(--border);}
-  tr.L3:hover{background:rgba(255,255,255,.01);}
-  tr.L3 td{font-family:'IBM Plex Mono',monospace;font-size:9px;padding:4px 11px;vertical-align:middle;color:var(--muted);text-align:right;}
-  tr.L3 td:first-child{text-align:left;padding-left:56px;}
+table.mt tbody tr { border-top: 1px solid var(--border); transition: background .1s; }
+table.mt tbody tr:hover { background: var(--bg); }
+table.mt tbody td {
+  font-family: var(--mono); font-size: 14px;
+  padding: 12px 16px; vertical-align: middle; text-align: right;
+  color: var(--text);
+}
+table.mt tbody td:first-child { text-align: left; }
+table.mt tbody td.gl { border-left: 1px solid var(--border); }
 
-  tr.GR td{background:var(--s3) !important;color:var(--y) !important;font-weight:700;font-size:11px;border-top:2px solid var(--border2) !important;font-family:'IBM Plex Mono',monospace;padding:9px 11px;text-align:right;}
-  tr.GR td:first-child{text-align:left;}
+/* asset name */
+.anc { display: flex; align-items: center; gap: 9px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+.an { font-family: var(--font); font-size: 14px; font-weight: 700; color: var(--text); }
 
-  .car{display:inline-block;font-size:9px;color:var(--muted);transition:transform .2s;margin-right:6px;vertical-align:middle;}
-  tr.open > td:first-child .car,.car.open{transform:rotate(90deg);}
-  .anc{display:flex;align-items:center;gap:6px;}
-  .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-  .an{font-size:12px;font-weight:700;color:var(--text);}
-  .dim{color:var(--muted2);font-size:10px;}
-  .dest-mh{color:var(--c);font-size:10px;word-break:break-word;white-space:normal;line-height:1.3;}
-  .dest-dh{color:var(--g);font-size:10px;word-break:break-word;white-space:normal;line-height:1.3;}
-  .from-orig{color:var(--muted2);font-size:9px;}
+/* value cells */
+.raw  { color: var(--muted2); }
+.adj  { color: var(--y); font-weight: 700; }
+.madj { color: var(--c); font-weight: 700; }
+.b {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-weight: 700;
+  min-width: 42px; height: 26px; border-radius: 5px; padding: 0 8px;
+  font-size: 14px; letter-spacing: -0.3px;
+}
+.b.y   { background: var(--y-bg); border: 1.5px solid var(--y-bd); color: var(--y); }
+.b.c   { background: var(--c-bg); border: 1.5px solid var(--c-bd); color: var(--c); }
+.b.dim { background: var(--s2); border: 1px solid var(--border); color: var(--muted2); font-size: 13px; }
 
-  .b{display:inline-flex;align-items:center;justify-content:center;font-weight:700;min-width:28px;height:19px;border-radius:2px;padding:0 4px;font-size:10px;}
-  .b.y{background:rgba(245,200,66,.13);border:1px solid rgba(245,200,66,.35);color:var(--y);}
-  .b.c{background:rgba(56,217,217,.11);border:1px solid rgba(56,217,217,.28);color:var(--c);}
-  .b.g{background:rgba(66,214,138,.11);border:1px solid rgba(66,214,138,.28);color:var(--g);}
-  .b.o{background:rgba(240,112,48,.11);border:1px solid rgba(240,112,48,.28);color:var(--o);}
-  .b.p{background:rgba(176,122,255,.11);border:1px solid rgba(176,122,255,.28);color:var(--p);}
-  .b.BIG{font-size:13px;min-width:36px;height:24px;font-weight:900;}
-  .b.BIG.y{background:rgba(245,200,66,.22);border:1px solid rgba(245,200,66,.6);}
+/* grand total row */
+tr.GR td {
+  background: var(--y-bg) !important; color: var(--y) !important;
+  font-weight: 700; font-size: 14px; border-top: 2px solid var(--y-bd) !important;
+  font-family: var(--mono); padding: 13px 16px; text-align: right;
+}
+tr.GR td:first-child { text-align: left; font-family: var(--font); font-size: 13px; font-weight: 800; letter-spacing: 0.3px; }
 
-  .cl{display:inline-flex;align-items:center;gap:6px;}
-  .ct{font-size:9px;padding:2px 6px;border-radius:2px;font-weight:700;letter-spacing:1px;}
-  .ct.c1{background:rgba(240,112,48,.2);color:var(--o);border:1px solid rgba(240,112,48,.4);}
-  .ct.c2{background:rgba(56,217,217,.15);color:var(--c);border:1px solid rgba(56,217,217,.35);}
-  .ct.c3{background:rgba(66,214,138,.15);color:var(--g);border:1px solid rgba(66,214,138,.35);}
-  .ct.cr{background:rgba(176,122,255,.15);color:var(--p);border:1px solid rgba(176,122,255,.35);}
+/* footer */
+#gfooter {
+  position: sticky; bottom: 0;
+  background: var(--white); border-top: 2px solid var(--y-bd);
+  padding: 10px 28px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  z-index: 100; box-shadow: 0 -4px 12px rgba(0,0,0,.06);
+}
+.gt { display: flex; flex-direction: column; gap: 2px; }
+.gt .gl { font-size: 9px; font-weight: 700; letter-spacing: 1px; color: var(--muted2); text-transform: uppercase; }
+.gt .gv { font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--y); line-height: 1.1; letter-spacing: -0.8px; }
+.gt .gv.sm { font-size: 17px; }
+.gt .gv.blue { color: var(--c); }
+.gts { width: 1px; height: 30px; background: var(--border); }
 
-  /* origin detail blocks */
-  .ob{background:var(--s1);border:1px solid var(--border);border-radius:5px;margin-bottom:10px;overflow:hidden;}
-  .oh{background:var(--s2);border-bottom:1px solid var(--border);padding:10px 15px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;cursor:pointer;user-select:none;}
-  .oh:hover{background:var(--s3);}
-  .ob.col .ob-body{display:none;}
-  .ob.col .chv{transform:rotate(-90deg);}
-  .chv{font-size:11px;color:var(--muted);transition:transform .2s;}
-  .ol{font-size:13px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--y);}
-  .sp{display:flex;gap:5px;align-items:center;flex-wrap:wrap;}
-  .pill{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:2px 8px;border-radius:20px;white-space:nowrap;}
-  .pill.y{background:rgba(245,200,66,.12);border:1px solid rgba(245,200,66,.3);color:var(--y);}
-  .pill.c{background:rgba(56,217,217,.10);border:1px solid rgba(56,217,217,.25);color:var(--c);}
-  .pill.g{background:rgba(66,214,138,.10);border:1px solid rgba(66,214,138,.25);color:var(--g);}
-  .pill.o{background:rgba(240,112,48,.10);border:1px solid rgba(240,112,48,.25);color:var(--o);}
-  .pill.hi{background:rgba(245,200,66,.22);border:1px solid rgba(245,200,66,.55);color:var(--y);font-weight:700;}
-  .pill.mu{background:var(--s3);border:1px solid var(--border);color:var(--muted2);}
-  .cg{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--border);}
-  @media(max-width:680px){.cg{grid-template-columns:1fr;}}
-  .cc{padding:12px 13px;border-right:1px solid var(--border);}
-  .cc:last-child{border-right:none;}
-  .cch{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:7px;padding-bottom:6px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
-  table.inn{width:100%;border-collapse:collapse;}
-  table.inn thead th{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--muted);text-align:left;padding:3px 4px 5px;text-transform:uppercase;}
-  table.inn tbody tr{border-top:1px solid var(--border);transition:background .1s;}
-  table.inn tbody tr:hover{background:rgba(255,255,255,.02);}
-  table.inn tbody td{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 4px;vertical-align:middle;}
-  .dn{font-size:10px;max-width:160px;word-break:break-word;white-space:normal;line-height:1.3;}
-  .dn.mh{color:var(--c);}.dn.dh{color:var(--g);}
-  .shp{color:var(--muted2);font-size:10px;}
-  .trow{background:var(--s3);border-top:2px solid var(--border2) !important;}
-  .trow td{color:var(--y) !important;font-weight:700;font-size:10px;letter-spacing:1px;}
-  .mhs{margin-bottom:10px;padding-bottom:9px;border-bottom:1px solid var(--border);}
-  .mhs:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
-  .mhsh{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
-  .mhl{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--c);}
-  .mhf{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--y);margin-left:auto;}
-  .nc{padding:14px 0;color:var(--muted);font-size:11px;letter-spacing:1px;text-transform:uppercase;text-align:center;}
-
-  /* directory table */
-  .dir-tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:5px;}
-  table.dtbl{width:100%;border-collapse:collapse;}
-  table.dtbl thead th{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);text-align:left;padding:9px 13px;text-transform:uppercase;background:var(--s2);border-bottom:1px solid var(--border2);}
-  table.dtbl tbody tr{border-top:1px solid var(--border);}
-  table.dtbl tbody tr:hover{background:rgba(255,255,255,.02);}
-  table.dtbl tbody td{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:7px 13px;vertical-align:middle;}
-  .src-base{color:var(--muted2);font-size:9px;}
-  .src-patch{color:var(--c);font-size:9px;}
-
-  /* debug */
-  #dbg{background:var(--s2);border:1px solid var(--border);border-radius:4px;padding:13px 16px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted2);line-height:1.9;}
-  #dbg b{color:var(--y);}#dbg .ok{color:var(--g);}#dbg .er{color:var(--r);}#dbg .wa{color:var(--o);}
-
-  /* footer */
-  #gfooter{position:sticky;bottom:0;background:var(--s1);border-top:2px solid var(--y);padding:8px 22px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;z-index:100;}
-  .gt{display:flex;flex-direction:column;gap:1px;}
-  .gt .gl{font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;}
-  .gt .gv{font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:700;color:var(--y);line-height:1.1;}
-  .gt .gv.sm{font-size:14px;}
-  .gts{width:1px;height:26px;background:var(--border2);}
-
-  ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:var(--bg);}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--s2); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
 </style>
 </head>
 <body>
 
 <header>
   <div class="hlogo">
-    <h1>⬡ Asset-level Flyer Mapper</h1>
+    <h1><em>Asset-level</em> Flyer Mapper</h1>
     <small>EKART LOGISTICS · SUPPLY CHAIN ASSET PLANNING</small>
   </div>
-  <div id="header-dir-status">Directory: <b id="dir-count">0</b> origins loaded</div>
+  <div id="hdr-status">Directory: <b id="dir-count">0</b> origins</div>
 </header>
 
-<!-- ══════════════════ UPLOAD STAGE ══════════════════ -->
+<!-- ═══ UPLOAD STAGE ═══ -->
 <div id="stage-upload">
 
-  <!-- 1. Optional mapping update -->
-  <div class="upload-card" style="max-width:780px;width:90%">
-    <div class="uc-head">
-      <span class="uc-badge opt">OPTIONAL</span>
+  <!-- Optional mapping patch -->
+  <div class="card">
+    <div class="card-head">
+      <span class="badge opt">Optional</span>
       <h2>Update Origin → MH Mapping</h2>
     </div>
     <div class="map-toggle" id="map-toggle">
       <span class="arr">▶</span>
-      <span>Upload a CSV to patch the origin directory</span>
-      <span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:10px" id="map-patch-summary"></span>
+      <span>Patch directory from CSV</span>
+      <span style="margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--g)" id="map-patch-lbl"></span>
     </div>
     <div class="map-body" id="map-body">
-
-      <!-- column spec -->
-      <div class="col-spec">
-        <div class="cs-title">Required columns in mapping CSV</div>
-        <div class="cr"><span class="col-name">origin_facility_name</span><span class="col-req r">REQUIRED</span><span class="col-desc">Facility name as it appears in shipment data</span></div>
-        <div class="cr"><span class="col-name">mh_name</span><span class="col-req r">REQUIRED</span><span class="col-desc">Mapped Motherhub name (e.g. Motherhub_DIC)</span></div>
-        <div style="margin-top:8px;color:var(--muted);font-size:10px">
-          ℹ &nbsp;Only rows present in the uploaded file will be updated. All other existing mappings remain unchanged.<br>
-          ℹ &nbsp;If the same <code class="teal">origin_facility_name</code> appears multiple times, the last row wins.
-        </div>
+      <div class="col-spec" style="margin-top:14px">
+        <div class="cs-title">Required columns in mapping file</div>
+        <div class="cr"><span class="col-name">origin_facility_name</span><span class="col-req r">Required</span><span class="col-desc">Facility name as in shipment data</span></div>
+        <div class="cr"><span class="col-name">mh_name</span><span class="col-req r">Required</span><span class="col-desc">Mapped Motherhub name</span></div>
+        <div class="col-note">Only entries present in the uploaded file are overwritten — all other existing mappings are kept.</div>
       </div>
-
       <div class="dz teal" id="map-dz">
         <input type="file" id="map-input" accept=".csv">
-        <span class="dz-icon">🗂</span>
+        <span class="icon">🗂</span>
         <h3 style="color:var(--c)">Drop Mapping CSV</h3>
-        <p>Columns: <code class="teal">origin_facility_name</code> &nbsp;·&nbsp; <code class="teal">mh_name</code><br>
-        Patches only the entries present — does not replace full directory</p>
+        <p>Columns: <code class="c">origin_facility_name</code> · <code class="c">mh_name</code></p>
       </div>
       <div id="map-status"></div>
     </div>
   </div>
 
-  <!-- 2. Shipment data upload -->
-  <div class="upload-card" style="max-width:780px;width:90%">
-    <div class="uc-head">
-      <span class="uc-badge req">REQUIRED</span>
+  <!-- Shipment data -->
+  <div class="card">
+    <div class="card-head">
+      <span class="badge req">Required</span>
       <h2>Shipment Data</h2>
       <p>Max 100 MB</p>
     </div>
-    <div class="uc-body">
-
-      <!-- column spec -->
+    <div class="card-body">
       <div class="col-spec">
         <div class="cs-title">Required columns in shipment CSV</div>
-        <div class="cr"><span class="col-name">origin_facility_name</span><span class="col-req r">REQUIRED</span><span class="col-desc">Origin facility (mapped to MH via directory)</span></div>
-        <div class="cr"><span class="col-name">destination_mh</span><span class="col-req r">REQUIRED</span><span class="col-desc">Destination Motherhub or TC hub</span></div>
-        <div class="cr"><span class="col-name">Assigned_hub</span><span class="col-req r">REQUIRED</span><span class="col-desc">Final delivery hub (DH)</span></div>
-        <div class="cr"><span class="col-name">shipment_id / vendor_tracking_id</span><span class="col-req o">AUTO-DETECT</span><span class="col-desc">Tracking ID (each row counted as 1 TID if absent)</span></div>
-        <div style="margin-top:8px;color:var(--muted);font-size:10px">
-          ℹ &nbsp;Rows with blank <code>origin_facility_name</code>, <code>destination_mh</code>, or <code>Assigned_hub</code> are skipped and counted.
-        </div>
+        <div class="cr"><span class="col-name">origin_facility_name</span><span class="col-req r">Required</span><span class="col-desc">Origin facility (mapped to MH via directory)</span></div>
+        <div class="cr"><span class="col-name">destination_mh</span><span class="col-req r">Required</span><span class="col-desc">Destination Motherhub or TC hub</span></div>
+        <div class="cr"><span class="col-name">Assigned_hub</span><span class="col-req r">Required</span><span class="col-desc">Final delivery hub</span></div>
+        <div class="cr"><span class="col-name">shipment_created_date</span><span class="col-req o">For monthly</span><span class="col-desc">Used to estimate daily rate → monthly volume</span></div>
+        <div class="col-note">Rows with blank <code>origin_facility_name</code>, <code>destination_mh</code>, or <code>Assigned_hub</code> are skipped and counted separately.</div>
       </div>
-
       <div class="dz" id="ship-dz">
         <input type="file" id="ship-input" accept=".csv">
-        <span class="dz-icon">📦</span>
+        <span class="icon">📦</span>
         <h3>Drop Shipment CSV</h3>
         <p>Drag & drop or click to browse</p>
       </div>
@@ -323,223 +356,156 @@
 
 </div><!-- end stage-upload -->
 
-<!-- ══════════════════ DASHBOARD ══════════════════ -->
+<!-- ═══ DASHBOARD ═══ -->
 <div id="stage-dash">
   <main>
+
     <div id="skip-banner"></div>
     <div id="kpi-bar"></div>
-    <div id="tab-bar">
-      <button class="tab active" data-panel="p-asset">Asset Summary</button>
-      <button class="tab" data-panel="p-origin">Origin Detail</button>
-      <button class="tab" data-panel="p-dir">Directory</button>
-      <button class="tab" data-panel="p-debug">Debug</button>
+    <div id="monthly-bar"></div>
+
+    <div class="table-head-bar">
+      <div class="section-title">
+        Asset-level Flyer Requirements
+        <span id="table-meta"></span>
+      </div>
+      <button class="dl-btn" id="dl-btn" onclick="downloadCSV()">
+        ↓ Download CSV
+      </button>
     </div>
 
-    <div class="panel active" id="p-asset">
-      <div class="fbar">
-        <input class="sbox" id="asset-search" placeholder="Filter MH asset name…">
-        <span class="fnote" id="asset-note"></span>
-      </div>
-      <div class="tw">
-        <table class="at">
-          <thead>
-            <tr>
-              <th rowspan="2" style="vertical-align:bottom;text-align:left;min-width:190px">MH Asset</th>
-              <th class="gh" colspan="2" style="border-bottom:1px solid var(--border2)">C1 — Self → DH</th>
-              <th class="gh" colspan="2" style="border-bottom:1px solid var(--border2)">C2 — Via Motherhub</th>
-              <th class="gh" colspan="2" style="border-bottom:1px solid var(--border2)">C3 — Direct DH</th>
-              <th class="gh" colspan="2" style="border-bottom:1px solid var(--border2)">Repacking (MH role)</th>
-              <th class="gh" colspan="2" style="border-bottom:1px solid var(--border2)">TOTAL AT ASSET</th>
-            </tr>
-            <tr>
-              <th class="sub gl">TIDs</th><th class="sub">Flyers</th>
-              <th class="sub gl">TIDs</th><th class="sub">Flyers</th>
-              <th class="sub gl">TIDs</th><th class="sub">Flyers</th>
-              <th class="sub gl">TIDs</th><th class="sub">Flyers</th>
-              <th class="sub gl">TIDs</th><th class="sub">Flyers</th>
-            </tr>
-          </thead>
-          <tbody id="asset-tbody"></tbody>
-        </table>
-      </div>
+    <div class="tw">
+      <table class="mt" id="main-table">
+        <thead>
+          <tr>
+            <th rowspan="2" style="vertical-align:bottom;text-align:left;min-width:200px">MH Asset</th>
+            <th class="gh" colspan="2" style="border-bottom:1px solid var(--border)">Computed (current data)</th>
+            <th class="gh" colspan="3" style="border-bottom:1px solid var(--border)">Monthly Estimate (×30 days)</th>
+          </tr>
+          <tr>
+            <th class="sub gl">Total Flyers</th>
+            <th class="sub">Asset Req <span style="font-size:9px;opacity:.7">×1.16</span></th>
+            <th class="sub gl">Est. TIDs / mo</th>
+            <th class="sub">Monthly Flyers</th>
+            <th class="sub">Monthly Req <span style="font-size:9px;opacity:.7">×1.16</span></th>
+          </tr>
+        </thead>
+        <tbody id="main-tbody"></tbody>
+      </table>
     </div>
 
-    <div class="panel" id="p-origin">
-      <div class="fbar">
-        <input class="sbox" id="origin-search" placeholder="Filter origin MH…">
-        <span class="fnote" id="origin-note"></span>
-      </div>
-      <div id="origins-container"></div>
-    </div>
-
-    <div class="panel" id="p-dir">
-      <div class="fbar">
-        <span class="fnote" id="dir-note"></span>
-      </div>
-      <div id="dir-wrap"></div>
-    </div>
-
-    <div class="panel" id="p-debug">
-      <div id="dbg">Loading…</div>
-    </div>
   </main>
   <div id="gfooter"></div>
 </div>
 
 <script>
-/* ═══════════════════════════════════════════════════
- *  BASE DIRECTORY  (from Book3.csv — first-wins on dups)
- * ═══════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════
+   CONSTANTS
+═══════════════════════════════════════════ */
+const FLYER_CAP  = 80;
+const ADJ_FACTOR = 1.16;   // operational stock multiplier
+const fc  = n => Math.ceil(n / FLYER_CAP);
+const adj = n => Math.ceil(n * ADJ_FACTOR);
+const isMH = s => typeof s === 'string' && s.toLowerCase().startsWith('motherhub');
+
+/* ═══════════════════════════════════════════
+   DIRECTORY
+═══════════════════════════════════════════ */
 const BASE_DIR = [
-  ['fkl-pune','MotherHub_PUNE'],
-  ['FKL_mhmalur','Motherhub_MAL'],
-  ['FKL_JKS','Motherhub_JKS'],
-  ['Fkl-ahmedabad01','Motherhub_ABD'],
-  ['fkl_STVBTS01','MotherHub_STV'],
-  ['FKL_BLRGMH3','MotherHub_BLR'],
-  ['Fkl-KalashHRNWB','Motherhub_HRN'],
-  ['Fkl-fwdchennai','MotherHub_CSK'],
-  ['Fkl-GAUFlexPLS','Motherhub_PLS'],
-  ['Fkl-PATFlexHajipur','MotherHub_HJR'],
-  ['FKL_hydpatan','MotherHub_HYP'],
-  ['FKL_HRNVMH4','Motherhub_HRN'],
-  ['FKL_IndoreBTS_02','Motherhub_IDO_BTS'],
-  ['Fkl-MUMFlexSai4','Motherhub_SAI_4'],
-  ['FKL_ulbesr','Motherhub_ULB'],
-  ['fkl_NAGBTS01','MotherHub_NAG_BTS'],
-  ['FKL_Jaipur_BTS','Motherhub_JAI_BTS'],
-  ['FKL_ANJVMH2','Motherhub_ANJ'],
-  ['FKL_BlrVMH2','MotherHub_BLR'],
-  ['fkl_DELFlexYakubpur','MotherHub_YKB'],
-  ['Fkl-MUMFlexSai4_EXT','Motherhub_SAI_4'],
-  ['fkl-Coimbatore','MotherHub_CJB'],
-  ['Fkl-sankpaGGN','Motherhub_GGN'],
-  ['FKL_DELInCity','Motherhub_DIC'],
-  ['Fkl_Kalash_NDC','MotherHub_NDC'],
-  ['MP_SuratHub_STV','MotherHub_STV'],
-  ['FKL_ANJ_GMH3','Motherhub_ANJ'],
-  ['Fkl-sankpaGGNGMH','Motherhub_GGN'],
-  ['FKL_farukngr','MotherHub_FRK'],
-  ['FKL_HRNVMH2','Motherhub_HRN'],
-  ['ekl-Medchal','MotherHub_MED'],
-  ['Fkl_LKO_BTS','Motherhub_LKO_BTS'],
-  ['Fkl-Hubli','Motherhub_Hub'],
-  ['Fkl-BLRAnjaniHoskote','Motherhub_ANJ'],
-  ['fkl_LUDFlex','Motherhub_LUH'],
-  ['FKL_UluberiaVMH2','Motherhub_ULB'],
-  ['FKL_Bhuneshwar_BTS01','Motherhub_CUT'],
-  ['FKL_hydpatan_EXT','MotherHub_HYP'],
-  ['FKL_Farukngr_EXT','MotherHub_FRK'],
-  ['fkl_VNI_BTS','Motherhub_VNI_BTS'],
+  ['fkl-pune','MotherHub_PUNE'],['FKL_mhmalur','Motherhub_MAL'],
+  ['FKL_JKS','Motherhub_JKS'],['Fkl-ahmedabad01','Motherhub_ABD'],
+  ['fkl_STVBTS01','MotherHub_STV'],['FKL_BLRGMH3','Motherhub_BLR_GMH_3'],
+  ['Fkl-KalashHRNWB','Motherhub_HRN'],['Fkl-fwdchennai','MotherHub_CSK'],
+  ['Fkl-GAUFlexPLS','Motherhub_PLS'],['Fkl-PATFlexHajipur','MotherHub_HJR'],
+  ['FKL_hydpatan','MotherHub_HYP'],['FKL_HRNVMH4','Motherhub_HRN'],
+  ['FKL_IndoreBTS_02','Motherhub_IDO_BTS'],['Fkl-MUMFlexSai4','Motherhub_SAI_4'],
+  ['FKL_ulbesr','Motherhub_ULB'],['fkl_NAGBTS01','MotherHub_NAG_BTS'],
+  ['FKL_Jaipur_BTS','Motherhub_JAI_BTS'],['FKL_ANJVMH2','Motherhub_ANJ'],
+  ['FKL_BlrVMH2','MotherHub_BLR'],['fkl_DELFlexYakubpur','MotherHub_YKB'],
+  ['Fkl-MUMFlexSai4_EXT','Motherhub_SAI_4'],['fkl-Coimbatore','MotherHub_CJB'],
+  ['Fkl-sankpaGGN','Motherhub_GGN'],['FKL_DELInCity','Motherhub_DIC'],
+  ['Fkl_Kalash_NDC','MotherHub_NDC'],['MP_SuratHub_STV','MotherHub_STV'],
+  ['FKL_ANJ_GMH3','Motherhub_ANJ'],['Fkl-sankpaGGNGMH','Motherhub_GGN'],
+  ['FKL_farukngr','MotherHub_FRK'],['FKL_HRNVMH2','Motherhub_HRN'],
+  ['ekl-Medchal','MotherHub_MED'],['Fkl_LKO_BTS','Motherhub_LKO_BTS'],
+  ['Fkl-Hubli','Motherhub_Hub'],['Fkl-BLRAnjaniHoskote','Motherhub_ANJ'],
+  ['fkl_LUDFlex','Motherhub_LUH'],['FKL_UluberiaVMH2','Motherhub_ULB'],
+  ['FKL_Bhuneshwar_BTS01','Motherhub_CUT'],['FKL_hydpatan_EXT','MotherHub_HYP'],
+  ['FKL_Farukngr_EXT','MotherHub_FRK'],['fkl_VNI_BTS','Motherhub_VNI_BTS'],
   ['FKL_ulbesr_EXT','Motherhub_ULB'],
+  ['Fkl-MUMFlexSai4_DSC','Motherhub_SAI_4_DSC'],
+  ['Fkl-Shrtcrt-PIT','Motherhub_SHRTCRT_PIT'],
 ];
 
-/* Live directory: Map<lowercase_key → { mh, origKey, source: 'base'|'patch' }> */
 const DIR = new Map();
-
 function initDir() {
   DIR.clear();
   for (const [orig, mh] of BASE_DIR) {
     const key = orig.toLowerCase();
-    if (!DIR.has(key)) DIR.set(key, { mh, origKey: orig, source: 'base' });
+    if (!DIR.has(key)) DIR.set(key, mh);
   }
-  updateDirCount();
+  document.getElementById('dir-count').textContent = DIR.size;
 }
-
 function patchDir(entries) {
-  /* entries = [{origKey, mh}] — last-wins within patch */
   let added = 0, updated = 0;
   for (const { origKey, mh } of entries) {
     const key = origKey.toLowerCase();
     const exists = DIR.has(key);
-    DIR.set(key, { mh, origKey, source: 'patch' });
+    DIR.set(key, mh);
     exists ? updated++ : added++;
   }
-  updateDirCount();
+  document.getElementById('dir-count').textContent = DIR.size;
   return { added, updated };
 }
-
-function updateDirCount() {
-  document.getElementById('dir-count').textContent = DIR.size;
-}
-
 initDir();
 
-/* ═══════════════════════════════════════════════════
- *  CONSTANTS & HELPERS
- * ═══════════════════════════════════════════════════ */
-const FLYER_CAP = 80;
-const fc   = n => Math.ceil(n / FLYER_CAP);
-const isMH = s => typeof s === 'string' && s.toLowerCase().startsWith('motherhub');
-
-let originData = [], assetData = [], GT = {}, dbg = {};
-
-/* ═══════════════════════════════════════════════════
- *  MAPPING CSV UPLOAD (patch)
- * ═══════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════
+   MAPPING UPLOAD
+═══════════════════════════════════════════ */
 const mapDZ = document.getElementById('map-dz');
-const mapInput = document.getElementById('map-input');
-
 document.getElementById('map-toggle').addEventListener('click', () => {
-  const tog = document.getElementById('map-toggle');
-  const body = document.getElementById('map-body');
-  tog.classList.toggle('open');
-  body.classList.toggle('open');
+  document.getElementById('map-toggle').classList.toggle('open');
+  document.getElementById('map-body').classList.toggle('open');
 });
-
 mapDZ.addEventListener('dragover', e => { e.preventDefault(); mapDZ.classList.add('drag'); });
 mapDZ.addEventListener('dragleave', () => mapDZ.classList.remove('drag'));
-mapDZ.addEventListener('drop', e => { e.preventDefault(); mapDZ.classList.remove('drag'); if (e.dataTransfer.files[0]) loadMapping(e.dataTransfer.files[0]); });
-mapInput.addEventListener('change', e => { if (e.target.files[0]) loadMapping(e.target.files[0]); });
+mapDZ.addEventListener('drop', e => { e.preventDefault(); mapDZ.classList.remove('drag'); e.dataTransfer.files[0] && loadMapping(e.dataTransfer.files[0]); });
+document.getElementById('map-input').addEventListener('change', e => e.target.files[0] && loadMapping(e.target.files[0]));
 
 function loadMapping(file) {
   Papa.parse(file, {
     header: true, skipEmptyLines: true,
     complete: result => {
-      const rows = result.data;
-      const cols = Object.keys(rows[0] || {});
-      const ci   = k => cols.find(c => c.trim().toLowerCase() === k.toLowerCase()) || null;
-      const C_OFN = ci('origin_facility_name');
-      const C_MH  = ci('mh_name');
-
+      const cols = Object.keys(result.data[0] || {});
+      const ci = k => cols.find(c => c.trim().toLowerCase() === k.toLowerCase()) || null;
+      const C_OFN = ci('origin_facility_name'), C_MH = ci('mh_name');
       if (!C_OFN || !C_MH) {
-        showMapStatus(`error: columns not found — need <b>origin_facility_name</b> and <b>mh_name</b>. Found: ${cols.join(', ')}`, true);
+        document.getElementById('map-status').style.display = 'block';
+        document.getElementById('map-status').style.color = 'var(--r)';
+        document.getElementById('map-status').textContent = `Columns not found. Need: origin_facility_name, mh_name. Found: ${cols.join(', ')}`;
         return;
       }
-
-      const entries = [];
-      for (const r of rows) {
-        const origKey = (r[C_OFN] || '').trim();
-        const mh      = (r[C_MH]  || '').trim();
-        if (origKey && mh) entries.push({ origKey, mh });
-      }
-
+      const entries = result.data.filter(r => (r[C_OFN]||'').trim() && (r[C_MH]||'').trim())
+                                  .map(r => ({ origKey: r[C_OFN].trim(), mh: r[C_MH].trim() }));
       const { added, updated } = patchDir(entries);
-      showMapStatus(`✓ Patched ${entries.length} entries from <b>${file.name}</b> — ${added} new · ${updated} updated · ${DIR.size} total in directory`, false);
-      document.getElementById('map-patch-summary').textContent = `✓ ${entries.length} entries patched`;
-
-      // Close the panel after success
+      const ms = document.getElementById('map-status');
+      ms.style.display = 'block'; ms.style.color = 'var(--g)';
+      ms.textContent = `✓ Patched ${entries.length} entries from ${file.name} — ${added} new, ${updated} updated`;
+      document.getElementById('map-patch-lbl').textContent = `✓ ${entries.length} patched`;
       document.getElementById('map-toggle').classList.remove('open');
       document.getElementById('map-body').classList.remove('open');
-    },
-    error: err => showMapStatus(`parse error: ${err.message}`, true)
+    }
   });
 }
 
-function showMapStatus(msg, isErr) {
-  const el = document.getElementById('map-status');
-  el.style.display = 'block';
-  el.innerHTML = `<div class="map-line ${isErr ? '' : 'map-ok'}" style="${isErr ? 'color:var(--r)' : ''}">${msg}</div>`;
-}
-
-/* ═══════════════════════════════════════════════════
- *  SHIPMENT CSV UPLOAD
- * ═══════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════
+   SHIPMENT UPLOAD
+═══════════════════════════════════════════ */
 const shipDZ = document.getElementById('ship-dz');
 shipDZ.addEventListener('dragover', e => { e.preventDefault(); shipDZ.classList.add('drag'); });
 shipDZ.addEventListener('dragleave', () => shipDZ.classList.remove('drag'));
-shipDZ.addEventListener('drop', e => { e.preventDefault(); shipDZ.classList.remove('drag'); if (e.dataTransfer.files[0]) goShipment(e.dataTransfer.files[0]); });
-document.getElementById('ship-input').addEventListener('change', e => { if (e.target.files[0]) goShipment(e.target.files[0]); });
+shipDZ.addEventListener('drop', e => { e.preventDefault(); shipDZ.classList.remove('drag'); e.dataTransfer.files[0] && goShipment(e.dataTransfer.files[0]); });
+document.getElementById('ship-input').addEventListener('change', e => e.target.files[0] && goShipment(e.target.files[0]));
 
 function goShipment(file) {
   if (file.size > 100 * 1024 * 1024) { alert('File exceeds 100 MB.'); return; }
@@ -549,10 +515,7 @@ function goShipment(file) {
   let rows = [], n = 0;
   Papa.parse(file, {
     header: true, skipEmptyLines: true,
-    step: r => {
-      rows.push(r.data);
-      if (++n % 2000 === 0) document.getElementById('pbar-fill').style.width = Math.min(88, n / 400) + '%';
-    },
+    step: r => { rows.push(r.data); if (++n % 2000 === 0) document.getElementById('pbar-fill').style.width = Math.min(90, n / 400) + '%'; },
     complete: () => {
       document.getElementById('pbar-fill').style.width = '100%';
       document.getElementById('parse-msg').textContent = `Computing ${rows.length.toLocaleString()} rows…`;
@@ -562,27 +525,24 @@ function goShipment(file) {
   });
 }
 
-/* ═══════════════════════════════════════════════════
- *  COMPUTE
- * ═══════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════
+   COMPUTE
+═══════════════════════════════════════════ */
+let assetData = [], GT = {};
+
 function compute(rows) {
   const cols = Object.keys(rows[0] || {});
-  const ci   = (...ks) => { for (const k of ks) { const f = cols.find(c => c.trim().toLowerCase() === k.toLowerCase()); if (f) return f; } return null; };
+  const ci = (...ks) => { for (const k of ks) { const f = cols.find(c => c.trim().toLowerCase() === k.toLowerCase()); if (f) return f; } return null; };
 
-  const C_OFN = ci('origin_facility_name');
-  const C_MH  = ci('mh_name');
-  const C_DM  = ci('destination_mh', 'DMH');
-  const C_AH  = ci('Assigned_hub', 'assigned_hub');
-  const C_TID = ci('shipment_id', 'vendor_tracking_id');
+  const C_OFN  = ci('origin_facility_name');
+  const C_MH   = ci('mh_name');
+  const C_DM   = ci('destination_mh', 'DMH');
+  const C_AH   = ci('Assigned_hub', 'assigned_hub');
+  const C_DATE = ci('shipment_created_date', 'created_time', 'shipment_created_at');
   const useDir = !!C_OFN;
 
-  dbg = { totalRows: rows.length, cols, C_OFN, C_MH, C_DM, C_AH, C_TID, useDir };
-
-  if (!C_OFN && !C_MH) { alert(`Neither "origin_facility_name" nor "mh_name" found.\nColumns: ${cols.join(', ')}`); return; }
-  if (!C_DM)  { alert(`"destination_mh" not found.\nColumns: ${cols.join(', ')}`); return; }
-  if (!C_AH)  { alert(`"Assigned_hub" not found.\nColumns: ${cols.join(', ')}`); return; }
-
-  let skipOFN = 0, skipDir = 0, skipMH = 0, skipDM = 0, skipAH = 0, processed = 0;
+  let skipOFN=0, skipDir=0, skipMH=0, skipDM=0, skipAH=0, processed=0;
+  const distinctDates = new Set();
 
   const PO = {}, PA = {};
   const getO = o => { if (!PO[o]) PO[o] = { c1:{}, c2:{}, c3:{}, c2sub:{} }; return PO[o]; };
@@ -592,10 +552,10 @@ function compute(rows) {
     let origin;
     if (useDir) {
       const ofn = (r[C_OFN] || '').trim();
-      if (!ofn)  { skipOFN++; continue; }
-      const entry = DIR.get(ofn.toLowerCase());
-      if (!entry) { skipDir++; continue; }
-      origin = entry.mh;
+      if (!ofn) { skipOFN++; continue; }
+      const mh = DIR.get(ofn.toLowerCase());
+      if (!mh) { skipDir++; continue; }
+      origin = mh;
     } else {
       origin = (r[C_MH] || '').trim();
       if (!origin) { skipMH++; continue; }
@@ -605,6 +565,17 @@ function compute(rows) {
     const ah = (r[C_AH] || '').trim();
     if (!dm) { skipDM++; continue; }
     if (!ah) { skipAH++; continue; }
+
+    // collect date for monthly estimation
+    if (C_DATE) {
+      const raw = (r[C_DATE] || '').trim();
+      if (raw) {
+        // extract YYYY-MM-DD part or the first 10 chars
+        const m = raw.match(/\d{4}-\d{2}-\d{2}/) || raw.match(/\d{2}[-/]\d{2}[-/]\d{4}/);
+        if (m) distinctDates.add(m[0]);
+        else if (raw.length >= 8) distinctDates.add(raw.substring(0, 10));
+      }
+    }
 
     processed++;
     getA(origin);
@@ -624,375 +595,218 @@ function compute(rows) {
     }
   }
 
-  dbg = { ...dbg, skipOFN, skipDir, skipMH, skipDM, skipAH, processed };
-  dbg.totalSkipped = skipOFN + skipDir + skipMH + skipDM + skipAH;
+  // Monthly scale factor
+  const daysInData    = distinctDates.size || null;
+  const dailyRate     = daysInData ? processed / daysInData : null;
+  const monthlyTIDs   = dailyRate ? Math.round(dailyRate * 30) : null;
+  const scaleFactor   = monthlyTIDs ? monthlyTIDs / processed : null;
 
-  const ent    = m => Object.entries(m);
-  const sumV   = m => Object.values(m).reduce((s, n) => s + n, 0);
-  const fcSum  = m => ent(m).reduce((s, [, n]) => s + fc(n), 0);
-  const toLanes= (m, cls) => ent(m).map(([k, n]) => ({ dest: k, count: n, flyers: fc(n), cls })).sort((a, b) => b.count - a.count);
+  // Build origin data (for asset map)
+  const ent   = m => Object.entries(m);
+  const sumV  = m => Object.values(m).reduce((s, n) => s + n, 0);
+  const fcSum = m => ent(m).reduce((s, [, n]) => s + fc(n), 0);
 
-  originData = [];
   for (const [origin, o] of ent(PO)) {
-    const c1L = toLanes(o.c1,'dh'), c2L = toLanes(o.c2,'mh'), c3L = toLanes(o.c3,'dh');
-    const c1T = sumV(o.c1), c2T = sumV(o.c2), c3T = sumV(o.c3);
     const c1F = fcSum(o.c1), c2F = fcSum(o.c2), c3F = fcSum(o.c3);
-    const mhNodes = ent(o.c2sub).map(([dm, ahMap]) => {
-      const subs = toLanes(ahMap, 'dh');
-      return { mh: dm, count: sumV(ahMap), flyersMH: subs.reduce((s, l) => s + l.flyers, 0), subLanes: subs };
-    }).sort((a, b) => b.count - a.count);
-    originData.push({ origin, totalTIDs: c1T+c2T+c3T, c1L, c2L, c3L, c1T, c2T, c3T, c1F, c2F, c3F, flyersOut: c1F+c2F+c3F, mhNodes });
-  }
-  originData.sort((a, b) => b.totalTIDs - a.totalTIDs);
-
-  for (const od of originData) {
-    const a = getA(od.origin);
-    Object.assign(a, { c1L:od.c1L, c2L:od.c2L, c3L:od.c3L, c1T:od.c1T, c2T:od.c2T, c3T:od.c3T, c1F:od.c1F, c2F:od.c2F, c3F:od.c3F, c2sub: PO[od.origin].c2sub });
+    const c1T = sumV(o.c1), c2T = sumV(o.c2), c3T = sumV(o.c3);
+    const a = getA(origin);
+    a.c1T=c1T; a.c2T=c2T; a.c3T=c3T;
+    a.c1F=c1F; a.c2F=c2F; a.c3F=c3F;
+    a.c2sub = o.c2sub;
   }
 
-  let gtC1F=0,gtC2F=0,gtC3F=0,gtRF=0,gtTIDs=0;
+  // Build assetData
   assetData = [];
+  let gtTotF=0, gtAdjF=0, gtMonF=0, gtMonAdj=0, gtMonTIDs=0;
+
   for (const [name, a] of ent(PA)) {
-    ['c1L','c2L','c3L'].forEach(k => { if (!a[k]) a[k] = []; });
-    ['c1T','c2T','c3T','c1F','c2F','c3F'].forEach(k => { if (!a[k]) a[k] = 0; });
+    ['c1T','c2T','c3T','c1F','c2F','c3F'].forEach(k => { if (!a[k]) a[k]=0; });
+
     let rT=0, rF=0;
-    const rsecs = [];
-    for (const [from, ahMap] of ent(a.repack||{})) {
-      const subs = toLanes(ahMap,'dh');
-      const sf = subs.reduce((s,l)=>s+l.flyers,0), sc = subs.reduce((s,l)=>s+l.count,0);
-      rT+=sc; rF+=sf;
-      rsecs.push({ fromOrigin:from, subs, secFlyers:sf, secTIDs:sc });
+    for (const [, ahMap] of ent(a.repack||{})) {
+      for (const [, n] of ent(ahMap)) { rT+=n; rF+=fc(n); }
     }
-    rsecs.sort((a,b)=>b.secTIDs-a.secTIDs);
-    const outT=a.c1T+a.c2T+a.c3T, outF=a.c1F+a.c2F+a.c3F;
-    gtC1F+=a.c1F; gtC2F+=a.c2F; gtC3F+=a.c3F; gtRF+=rF; gtTIDs+=outT;
-    assetData.push({ name, totT:outT+rT, totF:outF+rF, outT, outF, c1T:a.c1T,c1F:a.c1F,c1L:a.c1L, c2T:a.c2T,c2F:a.c2F,c2L:a.c2L, c2sub:a.c2sub||{}, c3T:a.c3T,c3F:a.c3F,c3L:a.c3L, rT, rF, rsecs });
+
+    const totT  = a.c1T + a.c2T + a.c3T + rT;
+    const totF  = a.c1F + a.c2F + a.c3F + rF;
+    const adjF  = adj(totF);
+
+    // Monthly scaling
+    const monTIDs = scaleFactor ? Math.round(totT * scaleFactor) : null;
+    const monF    = scaleFactor ? Math.ceil(totF * scaleFactor)  : null;
+    const monAdj  = monF !== null ? adj(monF) : null;
+
+    gtTotF  += totF;
+    gtAdjF  += adjF;
+    if (monF    !== null) gtMonF    += monF;
+    if (monAdj  !== null) gtMonAdj  += monAdj;
+    if (monTIDs !== null) gtMonTIDs += monTIDs;
+
+    assetData.push({ name, totT, totF, adjF, monTIDs, monF, monAdj });
   }
-  assetData.sort((a,b)=>b.totF-a.totF);
-  GT = { c1F:gtC1F,c2F:gtC2F,c3F:gtC3F,rF:gtRF, outF:gtC1F+gtC2F+gtC3F, total:gtC1F+gtC2F+gtC3F+gtRF, TIDs:gtTIDs, assets:assetData.length, ...dbg };
+
+  assetData.sort((a, b) => b.adjF - a.adjF);
+
+  GT = {
+    totalRows: rows.length, processed, skipOFN, skipDir, skipMH, skipDM, skipAH,
+    totalSkipped: skipOFN + skipDir + skipMH + skipDM + skipAH,
+    assets: assetData.length, gtTotF, gtAdjF, gtMonF, gtMonAdj, gtMonTIDs,
+    daysInData, dailyRate, monthlyTIDs, scaleFactor
+  };
 }
 
-/* ═══════════════════════════════════════════════════
- *  DASHBOARD
- * ═══════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════
+   SHOW DASHBOARD
+═══════════════════════════════════════════ */
 function showDash() {
   document.getElementById('stage-upload').style.display = 'none';
   document.getElementById('stage-dash').style.display   = 'block';
 
   // Skip banner
   const sb = document.getElementById('skip-banner');
-  const skipRows = [
-    GT.skipOFN  && ['bad','BLANK origin_facility_name',GT.skipOFN,'no origin to map'],
-    GT.skipDir  && ['wa', 'NOT IN DIRECTORY',          GT.skipDir,'origin not in MH mapping'],
-    GT.skipMH   && ['bad','BLANK mh_name',             GT.skipMH, 'no origin (fallback mode)'],
-    GT.skipDM   && ['bad','BLANK destination_mh',      GT.skipDM, 'routing unknown'],
-    GT.skipAH   && ['bad','BLANK Assigned_hub',        GT.skipAH, 'delivery hub unknown'],
-  ].filter(Boolean);
   if (GT.totalSkipped > 0) {
     sb.style.display = 'block';
-    const pct = ((GT.totalSkipped/GT.totalRows)*100).toFixed(1);
-    sb.innerHTML = `<div class="sbt">⚠ ${GT.totalSkipped.toLocaleString()} rows skipped (${pct}% of ${GT.totalRows.toLocaleString()})</div>`
-      + skipRows.map(([cls,lbl,cnt,reason])=>`<div class="sbr"><span class="stag ${cls}">${lbl}</span><b style="color:var(--${cls==='bad'?'r':'o'})">${cnt.toLocaleString()}</b> — ${reason}</div>`).join('')
-      + `<div class="sbr"><span class="stag ok">PROCESSED</span><b style="color:var(--g)">${GT.processed.toLocaleString()}</b> rows used</div>`;
+    const pct = ((GT.totalSkipped / GT.totalRows) * 100).toFixed(1);
+    const rows = [
+      GT.skipOFN && ['wa',  'BLANK origin_facility_name', GT.skipOFN, 'no origin to map'],
+      GT.skipDir && ['wa',  'NOT IN DIRECTORY',           GT.skipDir, 'facility not mapped to an MH'],
+      GT.skipMH  && ['bad', 'BLANK mh_name',              GT.skipMH,  'fallback mode — no origin'],
+      GT.skipDM  && ['bad', 'BLANK destination_mh',       GT.skipDM,  'routing unknown'],
+      GT.skipAH  && ['bad', 'BLANK Assigned_hub',         GT.skipAH,  'delivery hub unknown'],
+    ].filter(Boolean);
+    sb.innerHTML = `<div class="sbt">⚠ ${GT.totalSkipped.toLocaleString()} rows skipped (${pct}% of ${GT.totalRows.toLocaleString()} total)</div>`
+      + rows.map(([cls, lbl, cnt, reason]) =>
+          `<div class="sbr"><span class="stag ${cls}">${lbl}</span><b>${cnt.toLocaleString()}</b> — ${reason}</div>`
+        ).join('')
+      + `<div class="sbr"><span class="stag ok">PROCESSED</span><b style="color:var(--g)">${GT.processed.toLocaleString()}</b> rows used in computation</div>`;
   }
 
+  // KPIs — only 3 key metrics + skipped
   document.getElementById('kpi-bar').innerHTML = `
-    <div class="kpi y"><div class="n">${GT.total.toLocaleString()}</div><div class="l">Total Flyers Required</div></div>
-    <div class="kpi o"><div class="n">${GT.c1F.toLocaleString()}</div><div class="l">C1 (Self → DH)</div></div>
-    <div class="kpi c"><div class="n">${GT.c2F.toLocaleString()}</div><div class="l">C2 (→ Motherhub)</div></div>
-    <div class="kpi g"><div class="n">${GT.c3F.toLocaleString()}</div><div class="l">C3 (Direct DH)</div></div>
-    <div class="kpi p"><div class="n">${GT.rF.toLocaleString()}</div><div class="l">Repack at MH</div></div>
-    <div class="kpi r"><div class="n">${GT.totalSkipped.toLocaleString()}</div><div class="l">Rows Skipped<div class="sub">DIR:${GT.skipDir||0}·DM:${GT.skipDM}·AH:${GT.skipAH}</div></div></div>
+    <div class="kpi y">
+      <div class="n">${GT.gtAdjF.toLocaleString()}</div>
+      <div class="l">Total Asset Req</div>
+      <div class="sub">${GT.gtTotF.toLocaleString()} raw flyers × 1.16</div>
+    </div>
+    <div class="kpi c">
+      <div class="n">${GT.gtMonAdj !== null ? GT.gtMonAdj.toLocaleString() : '—'}</div>
+      <div class="l">Monthly Req</div>
+      <div class="sub">${GT.monthlyTIDs !== null ? GT.monthlyTIDs.toLocaleString() + ' TIDs / mo' : 'No date column found'}</div>
+    </div>
+    <div class="kpi g">
+      <div class="n">${GT.assets}</div>
+      <div class="l">MH Assets</div>
+      <div class="sub">${GT.processed.toLocaleString()} TIDs processed</div>
+    </div>
+    <div class="kpi r">
+      <div class="n">${GT.totalSkipped.toLocaleString()}</div>
+      <div class="l">Rows Skipped</div>
+      <div class="sub">DIR:${GT.skipDir||0} · DM:${GT.skipDM} · AH:${GT.skipAH}</div>
+    </div>
   `;
 
-  renderAssetTable(assetData);
-  renderOrigins(originData);
-  renderDirTab();
-  renderDebug();
+  // Monthly bar
+  if (GT.daysInData) {
+    const mb = document.getElementById('monthly-bar');
+    mb.style.display = 'flex';
+    mb.innerHTML = `
+      <div class="mbar-item"><div class="ml">Days in data</div><div class="mv" style="color:var(--muted)">${GT.daysInData}</div></div>
+      <div class="mbar-sep"></div>
+      <div class="mbar-item"><div class="ml">Avg / day</div><div class="mv" style="color:var(--muted)">${Math.round(GT.dailyRate).toLocaleString()}</div></div>
+      <div class="mbar-sep"></div>
+      <div class="mbar-item"><div class="ml">Est. TIDs / month</div><div class="mv">${GT.monthlyTIDs.toLocaleString()}</div></div>
+      <div class="mbar-sep"></div>
+      <div class="mbar-item"><div class="ml">Scale factor</div><div class="mv" style="color:var(--muted)">${GT.scaleFactor.toFixed(2)}×</div></div>
+    `;
+  }
 
-  document.getElementById('gfooter').innerHTML = `
-    <div class="gt"><div class="gl">TOTAL FLYERS</div><div class="gv">${GT.total.toLocaleString()}</div></div>
-    <div class="gts"></div>
-    <div class="gt"><div class="gl">C1</div><div class="gv sm" style="color:var(--o)">${GT.c1F}</div></div>
-    <div class="gts"></div>
-    <div class="gt"><div class="gl">C2</div><div class="gv sm" style="color:var(--c)">${GT.c2F}</div></div>
-    <div class="gts"></div>
-    <div class="gt"><div class="gl">C3</div><div class="gv sm" style="color:var(--g)">${GT.c3F}</div></div>
-    <div class="gts"></div>
-    <div class="gt"><div class="gl">REPACK</div><div class="gv sm" style="color:var(--p)">${GT.rF}</div></div>
-    <div class="gts"></div>
-    <div class="gt"><div class="gl">TIDs</div><div class="gv sm" style="color:var(--muted2)">${GT.TIDs.toLocaleString()}</div></div>
-    <div class="gts"></div>
-    <div class="gt"><div class="gl">SKIPPED</div><div class="gv sm" style="color:var(--r)">${GT.totalSkipped}</div></div>
-  `;
-
-  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-    document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
-    t.classList.add('active');
-    document.getElementById(t.dataset.panel).classList.add('active');
-  }));
-  document.getElementById('asset-search').addEventListener('input', e => {
-    const q = e.target.value.trim().toLowerCase();
-    const f = q ? assetData.filter(a=>a.name.toLowerCase().includes(q)) : assetData;
-    document.getElementById('asset-note').textContent = f.length < assetData.length ? `${f.length}/${assetData.length}` : '';
-    renderAssetTable(f);
-  });
-  document.getElementById('origin-search').addEventListener('input', e => {
-    const q = e.target.value.trim().toLowerCase();
-    const f = q ? originData.filter(d=>d.origin.toLowerCase().includes(q)) : originData;
-    document.getElementById('origin-note').textContent = f.length < originData.length ? `${f.length}/${originData.length}` : '';
-    renderOrigins(f);
-  });
+  document.getElementById('table-meta').textContent = `${assetData.length} assets · ×1.16 adj · ${GT.daysInData ? GT.daysInData + '-day basis' : 'no date col'}`;
+  renderTable(assetData);
+  renderFooter();
 }
 
-/* ═══════════════════════════════════════════════════
- *  ASSET TABLE — collapsible tree rows
- * ═══════════════════════════════════════════════════ */
-const PAL=['#f5c842','#38d9d9','#42d68a','#f07030','#b07aff','#e05252','#38a9d9','#d9c238','#d96eaa','#7ad9a0','#d9a038'];
-const COL={}; let CI=0;
-const gc = n => { if(!COL[n]) COL[n]=PAL[CI++%PAL.length]; return COL[n]; };
-const nd = v => v ? `<span class="dim">${v.toLocaleString()}</span>` : '<span class="dim">—</span>';
-const nb = (v,cls) => v ? `<span class="b ${cls}">${v}</span>` : '<span class="dim">—</span>';
+/* ═══════════════════════════════════════════
+   TABLE
+═══════════════════════════════════════════ */
+const PAL = ['#b45309','#0369a1','#15803d','#c2410c','#6d28d9','#b91c1c','#0e7490','#d97706','#9333ea','#047857','#be123c'];
+const COL = {}; let CI = 0;
+const gc = n => { if (!COL[n]) COL[n] = PAL[CI++ % PAL.length]; return COL[n]; };
 
-function renderAssetTable(data) {
-  const tb = document.getElementById('asset-tbody');
-  if (!data.length) { tb.innerHTML='<tr><td colspan="11" style="text-align:center;padding:28px;color:var(--muted)">NO DATA</td></tr>'; return; }
-  const G={c1t:0,c1f:0,c2t:0,c2f:0,c3t:0,c3f:0,rt:0,rf:0,tt:0,tf:0};
-  data.forEach(a=>{G.c1t+=a.c1T;G.c1f+=a.c1F;G.c2t+=a.c2T;G.c2f+=a.c2F;G.c3t+=a.c3T;G.c3f+=a.c3F;G.rt+=a.rT;G.rf+=a.rF;G.tt+=a.totT;G.tf+=a.totF;});
+function renderTable(data) {
+  const tb = document.getElementById('main-tbody');
+  const hasMonthly = data.some(a => a.monAdj !== null);
 
   let html = '';
-  data.forEach((a, i) => {
-    const uid = `a${i}`;
-    // L0: asset row
-    html += `<tr class="L0" data-uid="${uid}">
-      <td><div class="anc"><span class="car">▶</span><div class="dot" style="background:${gc(a.name)}"></div><span class="an">${a.name}</span></div></td>
-      <td class="gl">${nd(a.c1T)}</td><td>${nb(a.c1F,'o')}</td>
-      <td class="gl">${nd(a.c2T)}</td><td>${nb(a.c2F,'c')}</td>
-      <td class="gl">${nd(a.c3T)}</td><td>${nb(a.c3F,'g')}</td>
-      <td class="gl">${nd(a.rT)}</td><td>${nb(a.rF,'p')}</td>
-      <td class="gl"><span class="dim">${a.totT.toLocaleString()}</span></td><td><span class="b BIG y">${a.totF}</span></td>
+  const G = { totF:0, adjF:0, monTIDs:0, monF:0, monAdj:0 };
+  data.forEach(a => { G.totF+=a.totF; G.adjF+=a.adjF; G.monTIDs+=(a.monTIDs||0); G.monF+=(a.monF||0); G.monAdj+=(a.monAdj||0); });
+
+  data.forEach(a => {
+    html += `<tr>
+      <td><div class="anc"><div class="dot" style="background:${gc(a.name)}"></div><span class="an">${a.name}</span></div></td>
+      <td class="gl raw">${a.totF.toLocaleString()}</td>
+      <td><span class="b y">${a.adjF}</span></td>
+      <td class="gl dim">${a.monTIDs !== null ? a.monTIDs.toLocaleString() : '—'}</td>
+      <td class="raw">${a.monF !== null ? a.monF.toLocaleString() : '—'}</td>
+      <td>${a.monAdj !== null ? `<span class="b c">${a.monAdj}</span>` : '<span style="color:var(--muted2)">—</span>'}</td>
     </tr>`;
-
-    // helper: emit L1 + L2 + optional L3 for one case
-    const caseBlock = (label, ctcls, lanes, totF, totT, getSubLanes) => {
-      if (!lanes.length) return '';
-      const badgeCls = ctcls==='c1'?'o':ctcls==='c2'?'c':ctcls==='c3'?'g':'p';
-      let s = `<tr class="L1 ch-${uid}" style="display:none">
-        <td colspan="11"><div class="cl">
-          <span class="car" data-grp="g${uid}${ctcls}">▶</span>
-          <span class="ct ${ctcls}">${label}</span>&nbsp;
-          <span style="color:var(--muted2);font-size:9px">${lanes.length} lane${lanes.length!==1?'s':''} · ${totT.toLocaleString()} TIDs · </span>
-          <span class="b ${badgeCls}" style="height:17px;font-size:10px">${totF} flyers</span>
-        </div></td>
-      </tr>`;
-      lanes.forEach(l => {
-        s += `<tr class="L2 ch-${uid} sub-g${uid}${ctcls}" style="display:none">
-          <td><span class="dest-${l.cls}">${l.dest}</span></td>
-          <td colspan="9" style="text-align:left;padding-left:6px">
-            <span class="dim">${l.count.toLocaleString()} TIDs &nbsp;</span>
-            <span class="b ${l.cls==='mh'?'c':'g'}" style="height:17px;font-size:10px">${l.flyers} flyers</span>
-          </td>
-        </tr>`;
-        if (getSubLanes) {
-          getSubLanes(l.dest).forEach(sl => {
-            s += `<tr class="L3 ch-${uid} sub-g${uid}${ctcls}" style="display:none">
-              <td><span class="dest-dh">↳ ${sl.dest}</span></td>
-              <td colspan="9" style="text-align:left;padding-left:6px">
-                <span class="dim">${sl.count.toLocaleString()} TIDs &nbsp;</span>
-                <span class="b g" style="height:15px;font-size:9px">${sl.flyers} flyers</span>
-              </td>
-            </tr>`;
-          });
-        }
-      });
-      return s;
-    };
-
-    html += caseBlock('C1 — Self → DH',         'c1', a.c1L, a.c1F, a.c1T);
-    html += caseBlock('C2 — Origin → Motherhub', 'c2', a.c2L, a.c2F, a.c2T,
-      dm => Object.entries(a.c2sub[dm]||{}).map(([ah,n])=>({dest:ah,count:n,flyers:fc(n)})).sort((x,y)=>y.count-x.count));
-    html += caseBlock('C3 — Direct DH',          'c3', a.c3L, a.c3F, a.c3T);
-
-    // Repack block
-    if (a.rsecs.length) {
-      let rs = `<tr class="L1 ch-${uid}" style="display:none">
-        <td colspan="11"><div class="cl">
-          <span class="car" data-grp="g${uid}cr">▶</span>
-          <span class="ct cr">REPACK</span>&nbsp;
-          <span style="color:var(--muted2);font-size:9px">${a.rT.toLocaleString()} TIDs received · </span>
-          <span class="b p" style="height:17px;font-size:10px">${a.rF} flyers</span>
-        </div></td>
-      </tr>`;
-      a.rsecs.forEach(sec => {
-        rs += `<tr class="L2 ch-${uid} sub-g${uid}cr" style="display:none">
-          <td><span class="from-orig">← from ${sec.fromOrigin}</span></td>
-          <td colspan="9" style="text-align:left;padding-left:6px">
-            <span class="dim">${sec.secTIDs.toLocaleString()} TIDs · </span>
-            <span class="b p" style="height:17px;font-size:10px">${sec.secFlyers} flyers</span>
-          </td>
-        </tr>`;
-        sec.subs.forEach(sl => {
-          rs += `<tr class="L3 ch-${uid} sub-g${uid}cr" style="display:none">
-            <td><span class="dest-dh">↳ ${sl.dest}</span></td>
-            <td colspan="9" style="text-align:left;padding-left:6px">
-              <span class="dim">${sl.count.toLocaleString()} TIDs · </span>
-              <span class="b p" style="height:15px;font-size:9px">${sl.flyers} flyers</span>
-            </td>
-          </tr>`;
-        });
-      });
-      html += rs;
-    }
   });
 
   html += `<tr class="GR">
-    <td>GRAND TOTAL · ${data.length} ASSETS</td>
-    <td class="gl">${G.c1t||'—'}</td><td>${G.c1f}</td>
-    <td class="gl">${G.c2t||'—'}</td><td>${G.c2f}</td>
-    <td class="gl">${G.c3t||'—'}</td><td>${G.c3f}</td>
-    <td class="gl">${G.rt||'—'}</td><td>${G.rf}</td>
-    <td class="gl">${G.tt.toLocaleString()}</td><td>${G.tf}</td>
+    <td>TOTAL · ${data.length} ASSETS</td>
+    <td class="gl">${G.totF.toLocaleString()}</td>
+    <td>${G.adjF.toLocaleString()}</td>
+    <td class="gl">${G.monTIDs ? G.monTIDs.toLocaleString() : '—'}</td>
+    <td>${G.monF ? G.monF.toLocaleString() : '—'}</td>
+    <td>${G.monAdj ? G.monAdj.toLocaleString() : '—'}</td>
   </tr>`;
 
   tb.innerHTML = html;
-
-  // L0 → toggle L1 children
-  tb.querySelectorAll('tr.L0').forEach(row => {
-    row.addEventListener('click', () => {
-      const uid  = row.dataset.uid;
-      const open = row.classList.toggle('open');
-      tb.querySelectorAll(`tr.L1.ch-${uid}`).forEach(k => {
-        k.style.display = open ? 'table-row' : 'none';
-        if (!open) {
-          const grp = k.querySelector('[data-grp]')?.dataset.grp;
-          if (grp) tb.querySelectorAll(`tr.sub-${grp}`).forEach(s => s.style.display='none');
-          k.classList.remove('open');
-          const car = k.querySelector('.car'); if(car) car.classList.remove('open');
-        }
-      });
-    });
-  });
-
-  // L1 → toggle L2/L3 sub-rows
-  tb.querySelectorAll('tr.L1').forEach(row => {
-    row.addEventListener('click', e => {
-      e.stopPropagation();
-      const grp  = row.querySelector('[data-grp]')?.dataset.grp;
-      if (!grp) return;
-      const open = row.classList.toggle('open');
-      const car  = row.querySelector('.car'); if(car) car.classList.toggle('open', open);
-      tb.querySelectorAll(`tr.sub-${grp}`).forEach(k => k.style.display = open ? 'table-row' : 'none');
-    });
-  });
 }
 
-/* ═══════════════════════════════════════════════════
- *  ORIGIN DETAIL TAB
- * ═══════════════════════════════════════════════════ */
-function renderOrigins(data) {
-  const c = document.getElementById('origins-container');
-  if (!data.length) { c.innerHTML='<div style="text-align:center;padding:48px;color:var(--muted);font-size:12px;letter-spacing:2px">NO DATA</div>'; return; }
-  c.innerHTML = data.map(buildOB).join('');
-  c.querySelectorAll('.oh').forEach(h => h.addEventListener('click', () => h.closest('.ob').classList.toggle('col')));
-}
-
-function laneTable(lanes, bCls) {
-  if (!lanes.length) return '<div class="nc">No lanes</div>';
-  return `<table class="inn">
-    <thead><tr><th>Destination</th><th>TIDs</th><th>Flyers</th></tr></thead>
-    <tbody>
-      ${lanes.map(l=>`<tr><td><div class="dn ${l.cls}">${l.dest}</div></td><td class="shp">${l.count.toLocaleString()}</td><td><span class="b ${bCls}" style="font-size:10px">${l.flyers}</span></td></tr>`).join('')}
-      <tr class="trow"><td>SUBTOTAL</td><td>${lanes.reduce((s,l)=>s+l.count,0).toLocaleString()}</td><td>${lanes.reduce((s,l)=>s+l.flyers,0)}</td></tr>
-    </tbody></table>`;
-}
-
-function buildOB(d) {
-  const mhDetail = d.mhNodes.length ? d.mhNodes.map(n=>`
-    <div class="mhs">
-      <div class="mhsh"><span class="mhl">📍 ${n.mh}</span><span class="mhf">${n.count.toLocaleString()} TIDs · <b>${n.flyersMH} flyers</b></span></div>
-      <table class="inn">
-        <thead><tr><th>DH</th><th>TIDs</th><th>Flyers</th></tr></thead>
-        <tbody>
-          ${n.subLanes.map(s=>`<tr><td><div class="dn dh">${s.dest}</div></td><td class="shp">${s.count.toLocaleString()}</td><td><span class="b c" style="font-size:10px">${s.flyers}</span></td></tr>`).join('')}
-          <tr class="trow"><td>TOTAL</td><td>${n.subLanes.reduce((s,r)=>s+r.count,0).toLocaleString()}</td><td>${n.flyersMH}</td></tr>
-        </tbody>
-      </table>
-    </div>`).join('') : '';
-  return `<div class="ob">
-    <div class="oh">
-      <span class="ol">${d.origin}</span>
-      <div class="sp">
-        <span class="pill mu">${d.totalTIDs.toLocaleString()} TIDs</span>
-        <span class="pill o">C1:${d.c1F}</span><span class="pill c">C2:${d.c2F}</span><span class="pill g">C3:${d.c3F}</span>
-        <span class="pill hi">OUT ${d.flyersOut} FLYERS</span>
-        <span class="chv">▾</span>
-      </div>
-    </div>
-    <div class="ob-body">
-      <div class="cg">
-        <div class="cc"><div class="cch"><span style="color:var(--o)">C1 — Self → DH</span><span class="b o" style="font-size:10px">${d.c1F} flyers</span></div>${laneTable(d.c1L,'o')}</div>
-        <div class="cc">
-          <div class="cch"><span style="color:var(--c)">C2 — Via MH</span><span class="b c" style="font-size:10px">${d.c2F} flyers</span></div>
-          ${laneTable(d.c2L,'c')}
-          ${d.mhNodes.length?`<div style="margin-top:9px;padding-top:8px;border-top:1px dashed var(--border)"><div style="font-size:9px;color:var(--muted);letter-spacing:2px;margin-bottom:5px">↓ MH REPACKING DETAIL</div>${mhDetail}</div>`:''}
-        </div>
-        <div class="cc"><div class="cch"><span style="color:var(--g)">C3 — Direct DH</span><span class="b g" style="font-size:10px">${d.c3F} flyers</span></div>${laneTable(d.c3L,'g')}</div>
-      </div>
-    </div>
-  </div>`;
-}
-
-/* ═══════════════════════════════════════════════════
- *  DIRECTORY TAB
- * ═══════════════════════════════════════════════════ */
-function renderDirTab() {
-  const entries = [...DIR.entries()].sort((a,b) => a[1].mh.localeCompare(b[1].mh));
-  const patched = entries.filter(([,v])=>v.source==='patch').length;
-  document.getElementById('dir-note').textContent = `${DIR.size} origins · ${patched} patched from upload · ${DIR.size - patched} from base`;
-  document.getElementById('dir-wrap').innerHTML = `
-    <div class="dir-tbl-wrap">
-      <table class="dtbl">
-        <thead><tr><th>origin_facility_name</th><th>mh_name</th><th>Source</th></tr></thead>
-        <tbody>
-          ${entries.map(([key,{mh,origKey,source}])=>`<tr>
-            <td style="color:var(--text)">${origKey}</td>
-            <td style="color:var(--c)">${mh}</td>
-            <td><span class="${source==='patch'?'src-patch':'src-base'}">${source==='patch'?'⚡ patched':'base'}</span></td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>`;
-}
-
-/* ═══════════════════════════════════════════════════
- *  DEBUG TAB
- * ═══════════════════════════════════════════════════ */
-function renderDebug() {
-  const ok = v => v ? `<span class="ok">✓ ${v}</span>` : `<span class="er">✗ NOT FOUND</span>`;
-  document.getElementById('dbg').innerHTML = `
-    <b>Origin Mode:</b> ${dbg.useDir?`<span class="ok">origin_facility_name → directory → mh_name</span>`:`<span class="wa">mh_name fallback</span>`}<br><br>
-    <b>Column Detection</b><br>
-    origin_facility_name → ${ok(dbg.C_OFN)}<br>
-    mh_name (fallback) &nbsp;→ ${ok(dbg.C_MH)}<br>
-    destination_mh &nbsp;&nbsp;&nbsp;&nbsp;→ ${ok(dbg.C_DM)}<br>
-    Assigned_hub &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ ${ok(dbg.C_AH)}<br>
-    shipment_id &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ ${dbg.C_TID?`<span class="ok">✓ ${dbg.C_TID}</span>`:`<span class="wa">⚠ not found (row = 1 TID)</span>`}<br><br>
-    <b>Row Counts</b><br>
-    Total parsed &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <b>${GT.totalRows?.toLocaleString()}</b><br>
-    Processed &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <span class="ok"><b>${GT.processed?.toLocaleString()}</b></span><br>
-    Skipped — blank origin_facility &nbsp;: <span class="er"><b>${GT.skipOFN||0}</b></span><br>
-    Skipped — not in directory &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <span class="wa"><b>${GT.skipDir||0}</b></span><br>
-    Skipped — blank mh_name &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <span class="er"><b>${GT.skipMH||0}</b></span><br>
-    Skipped — blank destination_mh &nbsp;&nbsp;: <span class="er"><b>${GT.skipDM}</b></span><br>
-    Skipped — blank Assigned_hub &nbsp;&nbsp;&nbsp;&nbsp;: <span class="er"><b>${GT.skipAH}</b></span><br>
-    Total skipped &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <span class="er"><b>${GT.totalSkipped}</b></span><br><br>
-    <b>Directory</b><br>
-    Total entries &nbsp;: <b>${DIR.size}</b><br>
-    Patched entries : <b>${[...DIR.values()].filter(v=>v.source==='patch').length}</b><br><br>
-    <b>CSV Columns</b><br>
-    <span style="color:var(--muted2);font-size:10px">${(dbg.cols||[]).join(' · ')}</span>
+function renderFooter() {
+  document.getElementById('gfooter').innerHTML = `
+    <div class="gt"><div class="gl">Total Asset Req</div><div class="gv">${GT.gtAdjF.toLocaleString()}</div></div>
+    <div class="gts"></div>
+    <div class="gt"><div class="gl">Monthly Req</div><div class="gv blue sm">${GT.gtMonAdj !== null ? GT.gtMonAdj.toLocaleString() : '—'}</div></div>
+    <div class="gts"></div>
+    <div class="gt"><div class="gl">Raw Flyers</div><div class="gv sm" style="color:var(--muted2)">${GT.gtTotF.toLocaleString()}</div></div>
+    <div class="gts"></div>
+    <div class="gt"><div class="gl">Assets</div><div class="gv sm" style="color:var(--g)">${GT.assets}</div></div>
+    <div class="gts"></div>
+    <div class="gt"><div class="gl">Skipped</div><div class="gv sm" style="color:var(--r)">${GT.totalSkipped}</div></div>
   `;
+}
+
+/* ═══════════════════════════════════════════
+   CSV DOWNLOAD
+═══════════════════════════════════════════ */
+function downloadCSV() {
+  const header = ['MH Asset','Total Flyers (raw)','Asset Req (×1.16)','Monthly Est TIDs','Monthly Flyers','Monthly Req (×1.16)'];
+  const rows = assetData.map(a => [
+    a.name, a.totF, a.adjF,
+    a.monTIDs !== null ? a.monTIDs : '',
+    a.monF    !== null ? a.monF    : '',
+    a.monAdj  !== null ? a.monAdj  : ''
+  ]);
+
+  // Grand total row
+  const G = assetData.reduce((acc, a) => ({
+    totF: acc.totF + a.totF,
+    adjF: acc.adjF + a.adjF,
+    monTIDs: acc.monTIDs + (a.monTIDs || 0),
+    monF:    acc.monF    + (a.monF    || 0),
+    monAdj:  acc.monAdj  + (a.monAdj  || 0),
+  }), { totF:0, adjF:0, monTIDs:0, monF:0, monAdj:0 });
+  rows.push(['TOTAL', G.totF, G.adjF, G.monTIDs||'', G.monF||'', G.monAdj||'']);
+
+  const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `flyer_asset_req_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 </script>
 </body>
