@@ -457,7 +457,7 @@ tr.GR td:first-child { text-align: left; font-family: var(--font); font-size: 13
         <div class="dz" id="ship-dz">
           <input type="file" id="ship-input" accept=".csv">
           <span class="icon">📦</span>
-          <h3>Drop Forward CSV</h3>
+          <h3>Drop Shipment CSV</h3>
           <p>Drag & drop or click to browse</p>
         </div>
         <div class="ps" id="parse-status">
@@ -519,7 +519,15 @@ tr.GR td:first-child { text-align: left; font-family: var(--font); font-size: 13
           <div class="panel-empty" id="fwd-empty">
             <span class="pe-icon">📦</span>
             <div class="pe-title">No Shipment Data Loaded</div>
-            <div class="pe-sub">Upload a forward shipment CSV on the<br>upload page to see MH flyer requirements.</div>
+            <div class="pe-sub">Drop a file below or click to browse</div>
+            <div class="dz" id="ship-dz-dash" style="width:100%;max-width:340px;margin-top:8px;padding:18px 16px;">
+              <input type="file" id="ship-input-dash" accept=".csv">
+              <span style="font-size:22px;display:block;margin-bottom:6px;">📦</span>
+              <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px;">Drop Shipment CSV</div>
+              <div style="font-size:11px;color:var(--muted);">
+                Needs: <code style="font-size:10px">origin_facility_name</code> · <code style="font-size:10px">destination_mh</code> · <code style="font-size:10px">Assigned_hub</code>
+              </div>
+            </div>
           </div>
           <div id="fwd-content" style="display:none;">
             <div class="panel-skip" id="skip-banner"></div>
@@ -689,6 +697,13 @@ shipDZ.addEventListener('dragleave', () => shipDZ.classList.remove('drag'));
 shipDZ.addEventListener('drop', e => { e.preventDefault(); shipDZ.classList.remove('drag'); e.dataTransfer.files[0] && goShipment(e.dataTransfer.files[0]); });
 document.getElementById('ship-input').addEventListener('change', e => e.target.files[0] && goShipment(e.target.files[0]));
 
+// Also wire the in-dashboard forward drop zone (visible after RTO loads first)
+const shipDZdash = document.getElementById('ship-dz-dash');
+shipDZdash.addEventListener('dragover', e => { e.preventDefault(); shipDZdash.classList.add('drag'); });
+shipDZdash.addEventListener('dragleave', () => shipDZdash.classList.remove('drag'));
+shipDZdash.addEventListener('drop', e => { e.preventDefault(); shipDZdash.classList.remove('drag'); e.dataTransfer.files[0] && goShipment(e.dataTransfer.files[0]); });
+document.getElementById('ship-input-dash').addEventListener('change', e => e.target.files[0] && goShipment(e.target.files[0]));
+
 function goShipment(file) {
   const ps = document.getElementById('parse-status');
   ps.style.display = 'block';
@@ -847,10 +862,10 @@ function compute(rows) {
     // MH Req: distributed flyers × 1.1 × 1.5
     const adjF = adjMH(totF_dist);
 
-    // Monthly: scale the adjF (1.1x ×1.5) by scaleFactor → monF; then ×1.5 = monAdj
+    // Monthly: scale the MH Req flyer count (adjF) by daily rate → monthly volume, then ×1.5 buffer
     const monTIDs = scaleFactor ? Math.round((totT + blanks) * scaleFactor) : null;
-    const monF    = scaleFactor ? Math.ceil(adjF * scaleFactor)             : null;
-    const monAdj  = monF !== null ? adjMo(monF)                             : null;
+    const monF    = scaleFactor ? Math.ceil(adjF * scaleFactor)             : null;  // scale MH Req flyers
+    const monAdj  = monF !== null ? Math.ceil(monF * 1.5)                   : null;  // monthly buffer ×1.5
 
     gtTotF  += totF_dist;
     gtAdjF  += adjF;
@@ -1142,10 +1157,10 @@ function computeRTO(rows) {
     // Step 3: scale → DH Req = ceil(ceil(rawFlyers × 1.1) × 1.5)
     const dhReq      = adjMH(rawFlyers);
 
-    // Monthly
-    const monTIDs = scaleFactor ? Math.round(tidsDist * scaleFactor) : null;
-    const monRawF = monTIDs !== null ? fc(monTIDs) : null;
-    const monReq  = monRawF !== null ? adjMH(monRawF) : null;
+    // Monthly: scale the DH Req flyer count, then ×1.5 buffer
+    const monTIDs = scaleFactor ? Math.round(tidsDist * scaleFactor)       : null;
+    const monRawF = scaleFactor ? Math.ceil(dhReq * scaleFactor)           : null;  // scale DH Req flyers
+    const monReq  = monRawF !== null ? Math.ceil(monRawF * 1.5)            : null;  // monthly buffer ×1.5
 
     gtTids     += tids;
     gtTidsDist += tidsDist;
