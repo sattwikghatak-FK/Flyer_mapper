@@ -60,13 +60,16 @@ header small { font-family: var(--mono); font-size: 9px; color: var(--muted2); l
 
 /* ── Upload stage ── */
 #stage-upload {
-  display: flex; flex-direction: column; align-items: center; gap: 16px;
-  padding: 48px 20px 80px;
+  display: flex; flex-direction: column; align-items: center; gap: 18px;
+  padding: 40px 20px 80px;
 }
 .card {
   background: var(--white); border: 1px solid var(--border);
-  border-radius: var(--r-lg); width: 100%; max-width: 720px;
+  border-radius: var(--r-lg); width: 100%; max-width: 1040px;
   box-shadow: var(--shadow); overflow: hidden;
+}
+@media (max-width: 680px) {
+  .upload-row { grid-template-columns: 1fr !important; }
 }
 .card-head {
   background: var(--bg); border-bottom: 1px solid var(--border);
@@ -297,8 +300,8 @@ tr.GR td:first-child { text-align: left; font-family: var(--font); font-size: 13
 <!-- ═══ UPLOAD STAGE ═══ -->
 <div id="stage-upload">
 
-  <!-- Optional mapping patch -->
-  <div class="card">
+  <!-- Mapping patch — full width on top -->
+  <div class="card" style="max-width:1040px;width:92%;">
     <div class="card-head">
       <span class="badge opt">Optional</span>
       <h2>Update Origin → MH Mapping</h2>
@@ -325,34 +328,68 @@ tr.GR td:first-child { text-align: left; font-family: var(--font); font-size: 13
     </div>
   </div>
 
-  <!-- Shipment data -->
-  <div class="card">
-    <div class="card-head">
-      <span class="badge req">Required</span>
-      <h2>Shipment Data</h2>
-      <p>CSV · no size limit</p>
+  <!-- Side-by-side upload row -->
+  <div class="upload-row" style="display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:1040px;width:92%;align-items:start;">
+
+    <!-- Forward shipment -->
+    <div class="card" style="max-width:none;width:100%;">
+      <div class="card-head">
+        <span class="badge req">Required</span>
+        <h2>Forward Shipments</h2>
+        <p>CSV · no size limit</p>
+      </div>
+      <div class="card-body">
+        <div class="col-spec">
+          <div class="cs-title">Required columns</div>
+          <div class="cr"><span class="col-name">origin_facility_name</span><span class="col-req r">Required</span></div>
+          <div class="cr"><span class="col-name">destination_mh</span><span class="col-req r">Required</span></div>
+          <div class="cr"><span class="col-name">Assigned_hub</span><span class="col-req r">Required</span></div>
+          <div class="cr"><span class="col-name">shipment_created_date</span><span class="col-req o">Monthly est.</span></div>
+          <div class="col-note">Blanks in <code>destination_mh</code> / <code>Assigned_hub</code> are distributed proportionally to known origin MHs.</div>
+        </div>
+        <div class="dz" id="ship-dz">
+          <input type="file" id="ship-input" accept=".csv">
+          <span class="icon">📦</span>
+          <h3>Drop Shipment CSV</h3>
+          <p>Drag & drop or click to browse</p>
+        </div>
+        <div class="ps" id="parse-status">
+          <span id="parse-msg">Parsing…</span>
+          <div class="pbar"><div class="pbar-fill" id="pbar-fill"></div></div>
+        </div>
+      </div>
     </div>
-    <div class="card-body">
-      <div class="col-spec">
-        <div class="cs-title">Required columns in shipment CSV</div>
-        <div class="cr"><span class="col-name">origin_facility_name</span><span class="col-req r">Required</span><span class="col-desc">Origin facility (mapped to MH via directory)</span></div>
-        <div class="cr"><span class="col-name">destination_mh</span><span class="col-req r">Required</span><span class="col-desc">Destination Motherhub or TC hub</span></div>
-        <div class="cr"><span class="col-name">Assigned_hub</span><span class="col-req r">Required</span><span class="col-desc">Final delivery hub</span></div>
-        <div class="cr"><span class="col-name">shipment_created_date</span><span class="col-req o">For monthly</span><span class="col-desc">Used to estimate daily rate → monthly volume</span></div>
-        <div class="col-note">Rows with blank <code>origin_facility_name</code>, <code>destination_mh</code>, or <code>Assigned_hub</code> are skipped and counted separately.</div>
+
+    <!-- RTO shipment -->
+    <div class="card" style="max-width:none;width:100%;">
+      <div class="card-head" style="border-bottom-color:#e9d5ff;">
+        <span class="badge opt" style="background:#f5f3ff;border-color:#c4b5fd;color:#6d28d9;">Optional</span>
+        <h2>RTO Shipments</h2>
+        <p>CSV · no size limit</p>
       </div>
-      <div class="dz" id="ship-dz">
-        <input type="file" id="ship-input" accept=".csv">
-        <span class="icon">📦</span>
-        <h3>Drop Shipment CSV</h3>
-        <p>Drag & drop or click to browse</p>
-      </div>
-      <div class="ps" id="parse-status">
-        <span id="parse-msg">Parsing…</span>
-        <div class="pbar"><div class="pbar-fill" id="pbar-fill"></div></div>
+      <div class="card-body">
+        <div class="col-spec" style="background:#faf5ff;border-color:#e9d5ff;">
+          <div class="cs-title" style="color:#6d28d9;">Required columns</div>
+          <div class="cr"><span class="col-name">origin_facility_name</span><span class="col-req r">Required</span></div>
+          <div class="cr"><span class="col-name">Assigned_hub</span><span class="col-req r">Required</span><span class="col-desc" style="color:var(--muted)">Flyers sent <em>to</em> this DH</span></div>
+          <div class="cr"><span class="col-name">destination_mh</span><span class="col-req o">Used</span></div>
+          <div class="cr"><span class="col-name">rto_create_datetime</span><span class="col-req o">Monthly est.</span></div>
+          <div class="col-note"><code>ceil(shipments_per_DH / 80)</code> flyers per DH · ×1.1 ×1.5 · monthly ×1.5</div>
+        </div>
+        <div class="dz" id="rto-dz" style="border-color:#c4b5fd;background:#faf5ff;">
+          <input type="file" id="rto-input" accept=".csv">
+          <span class="icon">↩️</span>
+          <h3 style="color:#6d28d9">Drop RTO CSV</h3>
+          <p>Drag & drop or click to browse</p>
+        </div>
+        <div class="ps" id="rto-parse-status">
+          <span id="rto-parse-msg">Parsing RTO data…</span>
+          <div class="pbar"><div class="pbar-fill" id="rto-pbar-fill" style="background:#6d28d9"></div></div>
+        </div>
       </div>
     </div>
-  </div>
+
+  </div><!-- end side-by-side row -->
 
 </div><!-- end stage-upload -->
 
@@ -383,14 +420,48 @@ tr.GR td:first-child { text-align: left; font-family: var(--font); font-size: 13
             <th class="gh" colspan="3" style="border-bottom:1px solid var(--border)">Monthly Estimate (×30 days)</th>
           </tr>
           <tr>
-            <th class="sub gl">MH Req <span style="font-size:9px;opacity:.7">×1.16</span></th>
+            <th class="sub gl">MH Req <span style="font-size:9px;opacity:.7">×1.1 ×1.5</span></th>
             <th class="sub gl">Est. TIDs / mo</th>
-            <th class="sub">Monthly Flyers <span style="font-size:9px;opacity:.7">1.16x basis</span></th>
+            <th class="sub">Monthly Flyers <span style="font-size:9px;opacity:.7">1.1x ×1.5</span></th>
             <th class="sub">Monthly Req <span style="font-size:9px;opacity:.7">×1.5</span></th>
           </tr>
         </thead>
         <tbody id="main-tbody"></tbody>
       </table>
+    </div>
+
+    <!-- RTO Section -->
+    <div id="rto-section" style="display:none;margin-top:32px;">
+      <div id="rto-skip-banner"></div>
+      <div id="rto-kpi-bar" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:18px;"></div>
+      <div id="rto-monthly-bar" style="display:none;background:var(--white);border:1px solid var(--border);border-left:4px solid var(--p);border-radius:var(--r-md);padding:14px 20px;margin-bottom:18px;font-size:13px;color:var(--muted);box-shadow:var(--shadow-sm);align-items:center;gap:24px;flex-wrap:wrap;"></div>
+      <div class="table-head-bar">
+        <div class="section-title" style="color:#6d28d9">
+          RTO — Flyers Required at Delivery Hubs
+          <span id="rto-table-meta"></span>
+        </div>
+        <button class="dl-btn" onclick="downloadRTOCSV()" style="border-color:#c4b5fd;color:#6d28d9;">
+          ↓ Download RTO CSV
+        </button>
+      </div>
+      <div class="tw">
+        <table class="mt" id="rto-table">
+          <thead>
+            <tr>
+              <th rowspan="2" style="vertical-align:bottom;text-align:left;min-width:200px">Delivery Hub</th>
+              <th class="gh" colspan="1" style="border-bottom:1px solid var(--border)">Current Data</th>
+              <th class="gh" colspan="3" style="border-bottom:1px solid var(--border)">Monthly Estimate (×30 days)</th>
+            </tr>
+            <tr>
+              <th class="sub gl">DH Req <span style="font-size:9px;opacity:.7">×1.1 ×1.5</span></th>
+              <th class="sub gl">Est. TIDs / mo</th>
+              <th class="sub">Monthly Flyers <span style="font-size:9px;opacity:.7">1.1x ×1.5</span></th>
+              <th class="sub">Monthly Req <span style="font-size:9px;opacity:.7">×1.5</span></th>
+            </tr>
+          </thead>
+          <tbody id="rto-tbody"></tbody>
+        </table>
+      </div>
     </div>
 
   </main>
@@ -402,11 +473,11 @@ tr.GR td:first-child { text-align: left; font-family: var(--font); font-size: 13
    CONSTANTS
 ═══════════════════════════════════════════ */
 const FLYER_CAP  = 80;
-const ADJ_FACTOR = 1.16;  // MH Req multiplier
-const MON_SCALE  = 1.5;   // Monthly Req multiplier on top of 1.16x monthly value
+const ADJ_FACTOR = 1.1;   // Step 1 multiplier
+const MON_SCALE  = 1.5;   // Step 2 multiplier (monthly)
 const fc    = n => Math.ceil(n / FLYER_CAP);
-const adjMH = n => Math.ceil(n * ADJ_FACTOR);          // MH Req: ×1.16
-const adjMo = n => Math.ceil(n * MON_SCALE);           // Monthly Req: ×1.5 on monthly 1.16 value
+const adjMH = n => Math.ceil(Math.ceil(n * ADJ_FACTOR) * MON_SCALE); // ×1.1 then ×1.5
+const adjMo = n => Math.ceil(n * MON_SCALE); // Monthly Req: ×1.5 on 1.1x monthly value
 const isMH  = s => typeof s === 'string' && s.toLowerCase().startsWith('motherhub');
 
 /* ═══════════════════════════════════════════
@@ -528,7 +599,12 @@ function goShipment(file) {
 /* ═══════════════════════════════════════════
    COMPUTE
 ═══════════════════════════════════════════ */
-let assetData = [], GT = {};
+let assetData = [], GT = {
+  gtAdjF:0, gtMonAdj:null, gtTotF:0, assets:0,
+  totalSkipped:0, totalRows:0, processed:0,
+  skipOFN:0, skipDir:0, skipMH:0, skipDM:0, skipAH:0,
+  distributedBlanks:0, daysInData:null, dailyRate:null, monthlyTIDs:null
+};
 
 function compute(rows) {
   const cols = Object.keys(rows[0] || {});
@@ -635,8 +711,8 @@ function compute(rows) {
    *    totF_dist = ceil(totF × distScale)  — approx flyers if no blanks existed
    *
    *  Formula chain:
-   *    adjF    = ceil(totF_dist × 1.16)           ← MH Req
-   *    monF    = ceil(adjF × scaleFactor)          ← monthly 1.16x value
+   *    adjF    = ceil(totF_dist × 1.1 × 1.5)           ← MH Req
+   *    monF    = ceil(adjF × scaleFactor)          ← monthly 1.1x ×1.5 value
    *    monAdj  = ceil(monF × 1.5)                 ← Monthly Req
    * ──────────────────────────────────────────────────────────── */
   assetData = [];
@@ -658,10 +734,10 @@ function compute(rows) {
     const distScale  = totT > 0 ? (totT + blanks) / totT : 1;
     const totF_dist  = Math.ceil(totF * distScale);
 
-    // MH Req: distributed flyers × 1.16
+    // MH Req: distributed flyers × 1.1 × 1.5
     const adjF = adjMH(totF_dist);
 
-    // Monthly: scale the 1.16x value, then ×1.5
+    // Monthly: scale the adjF (1.1x ×1.5) by scaleFactor → monF; then ×1.5 = monAdj
     const monTIDs = scaleFactor ? Math.round((totT + blanks) * scaleFactor) : null;
     const monF    = scaleFactor ? Math.ceil(adjF * scaleFactor)             : null;
     const monAdj  = monF !== null ? adjMo(monF)                             : null;
@@ -695,9 +771,9 @@ function showDash() {
 
   // Skip banner
   const sb = document.getElementById('skip-banner');
-  if (GT.totalSkipped > 0) {
+  if ((GT.totalSkipped||0) > 0) {
     sb.style.display = 'block';
-    const pct = ((GT.totalSkipped / GT.totalRows) * 100).toFixed(1);
+    const pct = (((GT.totalSkipped||0) / (GT.totalRows||1)) * 100).toFixed(1);
     const rows = [
       GT.skipOFN && ['wa',  'BLANK origin_facility_name', GT.skipOFN, 'no origin to map'],
       GT.skipDir && ['wa',  'NOT IN DIRECTORY',           GT.skipDir, 'facility not mapped to an MH'],
@@ -705,7 +781,7 @@ function showDash() {
       GT.skipDM  && ['wa', 'BLANK destination_mh',       GT.skipDM,  'proportionally distributed to origin MH'],
       GT.skipAH  && ['wa', 'BLANK Assigned_hub',         GT.skipAH,  'proportionally distributed to origin MH'],
     ].filter(Boolean);
-    sb.innerHTML = `<div class="sbt">⚠ ${GT.totalSkipped.toLocaleString()} rows skipped (${pct}% of ${GT.totalRows.toLocaleString()} total)</div>`
+    sb.innerHTML = `<div class="sbt">⚠ ${(GT.totalSkipped||0).toLocaleString()} rows skipped (${pct}% of ${(GT.totalRows||0).toLocaleString()} total)</div>`
       + rows.map(([cls, lbl, cnt, reason]) =>
           `<div class="sbr"><span class="stag ${cls}">${lbl}</span><b>${cnt.toLocaleString()}</b> — ${reason}</div>`
         ).join('')
@@ -717,10 +793,10 @@ function showDash() {
     <div class="kpi y">
       <div class="n">${GT.gtAdjF.toLocaleString()}</div>
       <div class="l">Total Flyer Req</div>
-      <div class="sub">${GT.gtTotF.toLocaleString()} dist. flyers × 1.16</div>
+      <div class="sub">${GT.gtTotF.toLocaleString()} dist. flyers × 1.1 × 1.5</div>
     </div>
     <div class="kpi c">
-      <div class="n">${GT.gtMonAdj !== null ? GT.gtMonAdj.toLocaleString() : '—'}</div>
+      <div class="n">${GT.gtMonAdj != null ? GT.gtMonAdj.toLocaleString() : '—'}</div>
       <div class="l">Monthly Req</div>
       <div class="sub">${GT.monthlyTIDs !== null ? GT.monthlyTIDs.toLocaleString() + ' TIDs / mo' : 'No date column found'}</div>
     </div>
@@ -749,7 +825,7 @@ function showDash() {
     `;
   }
 
-  document.getElementById('table-meta').textContent = `${assetData.length} assets · MH Req ×1.16 · Monthly Req ×1.5 on 1.16x · ${GT.distributedBlanks.toLocaleString()} blanks distributed · ${GT.daysInData ? GT.daysInData + '-day basis' : 'no date col'}`;
+  document.getElementById('table-meta').textContent = `${assetData.length} assets · MH Req ×1.1 ×1.5 · Monthly Req ×1.5 on 1.1x · ${(GT.distributedBlanks||0).toLocaleString()} blanks distributed · ${GT.daysInData ? GT.daysInData + '-day basis' : 'no date col'}`;
   renderTable(assetData);
   renderFooter();
 }
@@ -789,14 +865,22 @@ function renderTable(data) {
 }
 
 function renderFooter() {
+  const fwdLoaded = assetData.length > 0;
+  const rtoLoaded = rtoData.length > 0;
   document.getElementById('gfooter').innerHTML = `
-    <div class="gt"><div class="gl">Total Flyer Req</div><div class="gv">${GT.gtAdjF.toLocaleString()}</div></div>
+    <div class="gt"><div class="gl">Fwd Flyer Req</div><div class="gv">${fwdLoaded ? (GT.gtAdjF||0).toLocaleString() : '—'}</div></div>
     <div class="gts"></div>
-    <div class="gt"><div class="gl">Monthly Req</div><div class="gv blue sm">${GT.gtMonAdj !== null ? GT.gtMonAdj.toLocaleString() : '—'}</div></div>
+    <div class="gt"><div class="gl">Fwd Monthly</div><div class="gv blue sm">${fwdLoaded && GT.gtMonAdj != null ? GT.gtMonAdj.toLocaleString() : '—'}</div></div>
+    ${rtoLoaded ? `
     <div class="gts"></div>
-    <div class="gt"><div class="gl">MH Assets</div><div class="gv sm" style="color:var(--g)">${GT.assets}</div></div>
+    <div class="gt"><div class="gl">RTO DH Req</div><div class="gv sm" style="color:#6d28d9">${(RTO_GT.gtAdjF||0).toLocaleString()}</div></div>
     <div class="gts"></div>
-    <div class="gt"><div class="gl">Skipped</div><div class="gv sm" style="color:var(--r)">${GT.totalSkipped}</div></div>
+    <div class="gt"><div class="gl">RTO Monthly</div><div class="gv sm" style="color:#6d28d9">${RTO_GT.gtMonAdj != null ? RTO_GT.gtMonAdj.toLocaleString() : '—'}</div></div>
+    ` : ''}
+    <div class="gts"></div>
+    <div class="gt"><div class="gl">MH Assets</div><div class="gv sm" style="color:var(--g)">${fwdLoaded ? GT.assets : '—'}${rtoLoaded ? ` · ${RTO_GT.dhs} DHs` : ''}</div></div>
+    <div class="gts"></div>
+    <div class="gt"><div class="gl">Skipped</div><div class="gv sm" style="color:var(--r)">${(GT.totalSkipped||0) + (rtoLoaded ? RTO_GT.totalSkipped||0 : 0)}</div></div>
   `;
 }
 
@@ -804,7 +888,7 @@ function renderFooter() {
    CSV DOWNLOAD
 ═══════════════════════════════════════════ */
 function downloadCSV() {
-  const header = ['MH Name','MH Req (×1.16)','Monthly Est TIDs','Monthly Flyers (1.16x basis)','Monthly Req (×1.5)'];
+  const header = ['MH Name','MH Req (×1.1 ×1.5)','Monthly Est TIDs','Monthly Flyers (1.1x ×1.5)','Monthly Req (×1.5)'];
   const rows = assetData.map(a => [
     a.name, a.adjF,
     a.monTIDs !== null ? a.monTIDs : '',
@@ -827,6 +911,241 @@ function downloadCSV() {
   const a    = document.createElement('a');
   a.href = url;
   a.download = `flyer_asset_req_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ═══════════════════════════════════════════
+   RTO UPLOAD
+═══════════════════════════════════════════ */
+let rtoData = [], RTO_GT = {
+  gtAdjF:0, gtMonAdj:null, gtTotF:0, dhs:0,
+  totalSkipped:0, totalRows:0, processed:0,
+  skipOFN:0, skipDir:0, skipAH:0,
+  daysInData:null, dailyRate:null, monthlyTIDs:null
+};
+
+const rtoDZ = document.getElementById('rto-dz');
+rtoDZ.addEventListener('dragover', e => { e.preventDefault(); rtoDZ.classList.add('drag'); });
+rtoDZ.addEventListener('dragleave', () => rtoDZ.classList.remove('drag'));
+rtoDZ.addEventListener('drop', e => { e.preventDefault(); rtoDZ.classList.remove('drag'); e.dataTransfer.files[0] && goRTO(e.dataTransfer.files[0]); });
+document.getElementById('rto-input').addEventListener('change', e => e.target.files[0] && goRTO(e.target.files[0]));
+
+function goRTO(file) {
+  const ps = document.getElementById('rto-parse-status');
+  ps.style.display = 'block';
+  document.getElementById('rto-parse-msg').textContent = `Reading ${file.name}…`;
+  let rows = [], n = 0;
+  Papa.parse(file, {
+    header: true, skipEmptyLines: true,
+    step: r => { rows.push(r.data); if (++n % 2000 === 0) document.getElementById('rto-pbar-fill').style.width = Math.min(90, n / 400) + '%'; },
+    complete: () => {
+      document.getElementById('rto-pbar-fill').style.width = '100%';
+      document.getElementById('rto-parse-msg').textContent = `Computing RTO for ${rows.length.toLocaleString()} rows…`;
+      setTimeout(() => {
+        computeRTO(rows);
+        document.getElementById('stage-upload').style.display = 'none';
+        document.getElementById('stage-dash').style.display   = 'block';
+        showRTO();
+      }, 60);
+    },
+    error: err => alert('RTO parse error: ' + err.message)
+  });
+}
+
+/* ═══════════════════════════════════════════
+   RTO COMPUTE
+   Logic: group by Assigned_hub (DH)
+          ceil(count / 80) = flyers to send TO that DH
+          adjF = ceil(totF × 1.1 × 1.5)   DH Req
+          monF = ceil(adjF × scaleFactor)
+          monAdj = ceil(monF × 1.5)  Monthly Req
+═══════════════════════════════════════════ */
+function computeRTO(rows) {
+  const cols = Object.keys(rows[0] || {});
+  const ci = (...ks) => { for (const k of ks) { const f = cols.find(c => c.trim().toLowerCase() === k.toLowerCase()); if (f) return f; } return null; };
+
+  const C_OFN  = ci('origin_facility_name');
+  const C_AH   = ci('Assigned_hub', 'assigned_hub');
+  const C_DATE = ci('rto_create_datetime', 'rto_created_date', 'rto_create_date');
+
+  let skipOFN=0, skipDir=0, skipAH=0, processed=0;
+  const distinctDates = new Set();
+  const dhCounts = {};
+
+  for (const r of rows) {
+    if (C_OFN) {
+      const ofn = (r[C_OFN] || '').trim();
+      if (!ofn)                         { skipOFN++; continue; }
+      if (!DIR.get(ofn.toLowerCase()))  { skipDir++; continue; }
+    }
+
+    const ah = (r[C_AH] || '').trim();
+    if (!ah) { skipAH++; continue; }
+
+    if (C_DATE) {
+      const raw = (r[C_DATE] || '').trim();
+      if (raw) {
+        const m = raw.match(/\d{4}-\d{2}-\d{2}/) || raw.match(/\d{2}[-/]\d{2}[-/]\d{4}/);
+        if (m) distinctDates.add(m[0]);
+        else if (raw.length >= 8) distinctDates.add(raw.substring(0, 10));
+      }
+    }
+
+    processed++;
+    dhCounts[ah] = (dhCounts[ah] || 0) + 1;
+  }
+
+  const daysInData  = distinctDates.size || null;
+  const dailyRate   = daysInData ? processed / daysInData : null;
+  const monthlyTIDs = dailyRate  ? Math.round(dailyRate * 30) : null;
+  const scaleFactor = monthlyTIDs ? monthlyTIDs / processed : null;
+
+  // Proportional blank distribution across DHs
+  const totalBlanks = skipAH;
+  const totalProc   = processed || 1;
+
+  rtoData = [];
+  let gtTotF=0, gtAdjF=0, gtMonF=0, gtMonAdj=0, gtMonTIDs=0;
+
+  for (const [dh, count] of Object.entries(dhCounts).sort((a, b) => b[1] - a[1])) {
+    const blankShare = Math.round((count / totalProc) * totalBlanks);
+    const countDist  = count + blankShare;
+
+    const totF  = fc(countDist);
+    const adjF  = adjMH(totF);
+    const monTIDs = scaleFactor ? Math.round(countDist * scaleFactor) : null;
+    const monF    = scaleFactor ? Math.ceil(adjF * scaleFactor)       : null;
+    const monAdj  = monF !== null ? adjMo(monF)                       : null;
+
+    gtTotF  += totF;  gtAdjF  += adjF;
+    if (monF    !== null) gtMonF    += monF;
+    if (monAdj  !== null) gtMonAdj  += monAdj;
+    if (monTIDs !== null) gtMonTIDs += monTIDs;
+
+    rtoData.push({ dh, count, blankShare, countDist, totF, adjF, monTIDs, monF, monAdj });
+  }
+
+  RTO_GT = {
+    totalRows: rows.length, processed, skipOFN, skipDir, skipAH,
+    totalSkipped: skipOFN + skipDir + skipAH,
+    dhs: rtoData.length, gtTotF, gtAdjF, gtMonF, gtMonAdj, gtMonTIDs,
+    daysInData, dailyRate, monthlyTIDs, scaleFactor
+  };
+}
+
+/* ═══════════════════════════════════════════
+   SHOW RTO
+═══════════════════════════════════════════ */
+function showRTO() {
+  document.getElementById('rto-section').style.display = 'block';
+
+  const sb = document.getElementById('rto-skip-banner');
+  if (RTO_GT.totalSkipped > 0) {
+    sb.style.cssText = 'display:block;background:#fef2f2;border:1px solid #fecaca;border-left:4px solid #b91c1c;border-radius:10px;padding:12px 18px;margin-bottom:16px;font-size:13px;line-height:2;';
+    const pct = ((RTO_GT.totalSkipped / RTO_GT.totalRows) * 100).toFixed(1);
+    sb.innerHTML = `<div class="sbt" style="color:#b91c1c">↩ RTO: ${RTO_GT.totalSkipped.toLocaleString()} rows skipped (${pct}%)</div>`
+      + [RTO_GT.skipOFN&&['wa','BLANK origin_facility_name',RTO_GT.skipOFN,'no origin'],
+         RTO_GT.skipDir&&['wa','NOT IN DIRECTORY',RTO_GT.skipDir,'not mapped to MH'],
+         RTO_GT.skipAH &&['wa','BLANK Assigned_hub',RTO_GT.skipAH,'proportionally distributed to DHs'],
+        ].filter(Boolean).map(([cls,lbl,cnt,reason])=>
+          `<div class="sbr"><span class="stag ${cls}">${lbl}</span><b>${cnt.toLocaleString()}</b> — ${reason}</div>`).join('')
+      + `<div class="sbr"><span class="stag ok">PROCESSED</span><b style="color:var(--g)">${RTO_GT.processed.toLocaleString()}</b> rows used</div>`;
+  }
+
+  document.getElementById('rto-kpi-bar').innerHTML = `
+    <div class="kpi" style="border-top:3px solid #6d28d9">
+      <div class="n" style="color:#6d28d9">${RTO_GT.gtAdjF.toLocaleString()}</div>
+      <div class="l">Total DH Flyer Req</div>
+      <div class="sub">${RTO_GT.gtTotF.toLocaleString()} raw flyers × 1.1 × 1.5</div>
+    </div>
+    <div class="kpi c">
+      <div class="n">${RTO_GT.gtMonAdj != null ? RTO_GT.gtMonAdj.toLocaleString() : '—'}</div>
+      <div class="l">Monthly DH Req</div>
+      <div class="sub">${RTO_GT.monthlyTIDs !== null ? RTO_GT.monthlyTIDs.toLocaleString() + ' RTOs / mo' : 'No date column'}</div>
+    </div>
+    <div class="kpi g">
+      <div class="n">${RTO_GT.dhs}</div>
+      <div class="l">Delivery Hubs</div>
+      <div class="sub">${RTO_GT.processed.toLocaleString()} RTO TIDs</div>
+    </div>
+    <div class="kpi r">
+      <div class="n">${RTO_GT.totalSkipped.toLocaleString()}</div>
+      <div class="l">Rows Skipped</div>
+      <div class="sub">DIR:${RTO_GT.skipDir||0} · AH:${RTO_GT.skipAH}</div>
+    </div>
+  `;
+
+  if (RTO_GT.daysInData) {
+    const mb = document.getElementById('rto-monthly-bar');
+    mb.style.display = 'flex';
+    mb.innerHTML = `
+      <div class="mbar-item"><div class="ml">Days in RTO data</div><div class="mv" style="color:var(--muted)">${RTO_GT.daysInData}</div></div>
+      <div class="mbar-sep"></div>
+      <div class="mbar-item"><div class="ml">Avg RTOs / day</div><div class="mv" style="color:var(--muted)">${Math.round(RTO_GT.dailyRate).toLocaleString()}</div></div>
+      <div class="mbar-sep"></div>
+      <div class="mbar-item"><div class="ml">Est. RTOs / month</div><div class="mv" style="color:var(--c)">${RTO_GT.monthlyTIDs.toLocaleString()}</div></div>
+    `;
+  }
+
+  document.getElementById('rto-table-meta').textContent =
+    `${rtoData.length} DHs · DH Req ×1.1 ×1.5 · Monthly Req ×1.5 on 1.1x · ${RTO_GT.daysInData ? RTO_GT.daysInData+'-day basis' : 'no date col'}`;
+
+  renderRTOTable(rtoData);
+  renderFooter();
+}
+
+/* ═══════════════════════════════════════════
+   RTO TABLE RENDER
+═══════════════════════════════════════════ */
+function renderRTOTable(data) {
+  const tb = document.getElementById('rto-tbody');
+  let html = '';
+  const G = { adjF:0, monTIDs:0, monF:0, monAdj:0 };
+  data.forEach(d => { G.adjF+=d.adjF; G.monTIDs+=(d.monTIDs||0); G.monF+=(d.monF||0); G.monAdj+=(d.monAdj||0); });
+
+  data.forEach(d => {
+    html += `<tr>
+      <td><span style="font-family:var(--mono);font-size:14px;font-weight:700;color:#6d28d9">${d.dh}</span></td>
+      <td class="gl"><span class="b" style="background:#f5f3ff;border:1.5px solid #c4b5fd;color:#6d28d9">${d.adjF}</span></td>
+      <td class="gl dim">${d.monTIDs !== null ? d.monTIDs.toLocaleString() : '—'}</td>
+      <td class="raw">${d.monF !== null ? d.monF.toLocaleString() : '—'}</td>
+      <td>${d.monAdj !== null ? `<span class="b c">${d.monAdj}</span>` : '<span style="color:var(--muted2)">—</span>'}</td>
+    </tr>`;
+  });
+
+  html += `<tr class="GR">
+    <td>TOTAL · ${data.length} DELIVERY HUBS</td>
+    <td class="gl">${G.adjF.toLocaleString()}</td>
+    <td class="gl">${G.monTIDs ? G.monTIDs.toLocaleString() : '—'}</td>
+    <td>${G.monF ? G.monF.toLocaleString() : '—'}</td>
+    <td>${G.monAdj ? G.monAdj.toLocaleString() : '—'}</td>
+  </tr>`;
+
+  tb.innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════
+   RTO CSV DOWNLOAD
+═══════════════════════════════════════════ */
+function downloadRTOCSV() {
+  const header = ['Delivery Hub','RTO Shipments (dist.)','DH Req (×1.1 ×1.5)','Monthly Est RTOs','Monthly Flyers (1.1x)','Monthly Req (×1.5)'];
+  const rows = rtoData.map(d => [
+    d.dh, d.countDist, d.adjF,
+    d.monTIDs ?? '', d.monF ?? '', d.monAdj ?? ''
+  ]);
+  const G = rtoData.reduce((acc, d) => ({
+    countDist: acc.countDist + d.countDist, adjF: acc.adjF + d.adjF,
+    monTIDs: acc.monTIDs + (d.monTIDs||0), monF: acc.monF + (d.monF||0), monAdj: acc.monAdj + (d.monAdj||0),
+  }), { countDist:0, adjF:0, monTIDs:0, monF:0, monAdj:0 });
+  rows.push(['TOTAL', G.countDist, G.adjF, G.monTIDs||'', G.monF||'', G.monAdj||'']);
+
+  const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type:'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `rto_dh_flyer_req_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
