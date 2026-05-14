@@ -410,7 +410,7 @@ tr.GR td:first-child { text-align: left; font-family: var(--font); font-size: 13
   <!-- Mapping patch — full width on top -->
   <div class="card" style="max-width:1040px;width:92%;">
     <div class="card-head">
-      <span class="badge opt">Optional</span>
+      <span class="badge opt"></span>
       <h2>Update Origin → MH Mapping</h2>
     </div>
     <div class="map-toggle" id="map-toggle">
@@ -460,17 +460,13 @@ tr.GR td:first-child { text-align: left; font-family: var(--font); font-size: 13
           <h3>Drop Shipment CSV</h3>
           <p>Drag & drop or click to browse</p>
         </div>
-        <div class="ps" id="parse-status">
-          <span id="parse-msg">Parsing…</span>
-          <div class="pbar"><div class="pbar-fill" id="pbar-fill"></div></div>
-        </div>
       </div>
     </div>
 
     <!-- RTO shipment -->
     <div class="card" style="max-width:none;width:100%;">
       <div class="card-head" style="border-bottom-color:#e9d5ff;">
-        <span class="badge opt" style="background:#f5f3ff;border-color:#c4b5fd;color:#6d28d9;">Optional</span>
+        <span class="badge opt" style="background:#f5f3ff;border-color:#c4b5fd;color:#6d28d9;">Required</span>
         <h2>RTO Shipments</h2>
         <p>CSV · no size limit</p>
       </div>
@@ -488,10 +484,6 @@ tr.GR td:first-child { text-align: left; font-family: var(--font); font-size: 13
           <span class="icon">↩️</span>
           <h3 style="color:#6d28d9">Drop RTO CSV</h3>
           <p>Drag & drop or click to browse</p>
-        </div>
-        <div class="ps" id="rto-parse-status">
-          <span id="rto-parse-msg">Parsing RTO data…</span>
-          <div class="pbar"><div class="pbar-fill" id="rto-pbar-fill" style="background:#6d28d9"></div></div>
         </div>
       </div>
     </div>
@@ -530,6 +522,10 @@ tr.GR td:first-child { text-align: left; font-family: var(--font); font-size: 13
             </div>
           </div>
           <div id="fwd-content" style="display:none;">
+            <div class="ps" id="parse-status" style="margin-bottom:10px;">
+              <span id="parse-msg">Parsing…</span>
+              <div class="pbar"><div class="pbar-fill" id="pbar-fill"></div></div>
+            </div>
             <div class="panel-skip" id="skip-banner"></div>
             <div class="panel-kpi-bar" id="kpi-bar"></div>
             <div class="panel-mbar" id="monthly-bar"></div>
@@ -705,8 +701,12 @@ shipDZdash.addEventListener('drop', e => { e.preventDefault(); shipDZdash.classL
 document.getElementById('ship-input-dash').addEventListener('change', e => e.target.files[0] && goShipment(e.target.files[0]));
 
 function goShipment(file) {
+  // Show fwd panel content area immediately (for progress bar visibility)
+  document.getElementById('fwd-empty').style.display   = 'none';
+  document.getElementById('fwd-content').style.display = 'block';
   const ps = document.getElementById('parse-status');
   ps.style.display = 'block';
+  document.getElementById('pbar-fill').style.width = '0%';
   document.getElementById('parse-msg').textContent = `Reading ${file.name}…`;
   let rows = [], n = 0;
   Papa.parse(file, {
@@ -715,7 +715,10 @@ function goShipment(file) {
     complete: () => {
       document.getElementById('pbar-fill').style.width = '100%';
       document.getElementById('parse-msg').textContent = `Computing ${rows.length.toLocaleString()} rows…`;
-      setTimeout(() => { compute(rows); showDash(); }, 60);
+      setTimeout(() => {
+        compute(rows); showDash();
+        document.getElementById('parse-status').style.display = 'none';
+      }, 60);
     },
     error: err => alert('Parse error: ' + err.message)
   });
@@ -1067,8 +1070,23 @@ rtoDZdash.addEventListener('drop', e => { e.preventDefault(); rtoDZdash.classLis
 document.getElementById('rto-input-dash').addEventListener('change', e => e.target.files[0] && goRTO(e.target.files[0]));
 
 function goRTO(file) {
+  // Show dash and RTO panel immediately for progress bar
+  document.getElementById('stage-upload').style.display = 'none';
+  document.getElementById('stage-dash').style.display   = 'block';
+  document.getElementById('rto-empty').style.display    = 'none';
+  document.getElementById('rto-dl-btn').style.display   = 'inline-flex';
+  const rtoBody = document.getElementById('rto-panel-body');
+  if (!document.getElementById('rto-parse-status')) {
+    rtoBody.insertAdjacentHTML('beforeend', `
+      <div class="ps" id="rto-parse-status" style="margin-bottom:10px;">
+        <span id="rto-parse-msg">Parsing RTO data…</span>
+        <div class="pbar"><div class="pbar-fill" id="rto-pbar-fill" style="background:#6d28d9"></div></div>
+      </div>
+    `);
+  }
   const ps = document.getElementById('rto-parse-status');
   ps.style.display = 'block';
+  document.getElementById('rto-pbar-fill').style.width = '0%';
   document.getElementById('rto-parse-msg').textContent = `Reading ${file.name}…`;
   let rows = [], n = 0;
   Papa.parse(file, {
@@ -1079,8 +1097,7 @@ function goRTO(file) {
       document.getElementById('rto-parse-msg').textContent = `Computing RTO for ${rows.length.toLocaleString()} rows…`;
       setTimeout(() => {
         computeRTO(rows);
-        document.getElementById('stage-upload').style.display = 'none';
-        document.getElementById('stage-dash').style.display   = 'block';
+        document.getElementById('rto-parse-status').style.display = 'none';
         showRTO();
       }, 60);
     },
