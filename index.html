@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Asset-level Flyer Mapper</title>
+<title>Asset-level Flyer Mapper v8</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -134,6 +134,45 @@ code.c { background: var(--c-bg); color: var(--c); border-color: var(--c-bd); }
 /* ── Dashboard ── */
 #stage-dash { display: none; }
 main { max-width: 100%; margin: 0; padding: 18px 20px 80px; }
+
+/* Retractable mapping panel */
+#dir-panel {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--r-md); margin-bottom: 16px;
+  box-shadow: var(--shadow-sm); overflow: hidden;
+}
+#dir-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px; cursor: pointer; user-select: none;
+  background: var(--s2); transition: background .15s;
+}
+#dir-toggle:hover { background: var(--s3); }
+.dir-toggle-left { display: flex; align-items: center; gap: 10px; }
+.dir-toggle-title { font-size: 13px; font-weight: 700; color: var(--muted); letter-spacing: 0.3px; }
+.dir-count-badge {
+  font-family: var(--mono); font-size: 10px; padding: 2px 8px;
+  border-radius: 20px; background: var(--s3); border: 1px solid var(--border);
+  color: var(--muted2); font-weight: 600;
+}
+.dir-arr { font-size: 10px; color: var(--muted2); transition: transform .2s; }
+#dir-panel.open .dir-arr { transform: rotate(90deg); }
+#dir-body { display: none; border-top: 1px solid var(--border); overflow-x: auto; max-height: 320px; overflow-y: auto; }
+#dir-panel.open #dir-body { display: block; }
+table.dir-tbl { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11px; }
+table.dir-tbl thead th {
+  background: var(--s3); padding: 7px 13px; text-align: left;
+  font-size: 9px; font-weight: 700; letter-spacing: 1.5px; color: var(--muted);
+  text-transform: uppercase; border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 1;
+}
+table.dir-tbl tbody tr { border-top: 1px solid var(--border); }
+table.dir-tbl tbody tr:hover { background: var(--bg); }
+table.dir-tbl tbody td { padding: 5px 13px; vertical-align: middle; }
+.dir-orig { color: var(--text); }
+.dir-mh   { color: var(--c); font-weight: 500; }
+.dir-club { color: var(--o); font-size: 10px; }
+.dir-src-base  { color: var(--muted2); font-size: 9px; }
+.dir-src-patch { color: var(--g); font-size: 9px; font-weight: 700; }
 
 /* ── Dashboard side-by-side layout ── */
 #dash-grid {
@@ -410,7 +449,7 @@ tr.GR td:first-child { text-align: left; font-family: var(--font); font-size: 13
   <!-- Mapping patch — full width on top -->
   <div class="card" style="max-width:1040px;width:92%;">
     <div class="card-head">
-      <span class="badge opt"></span>
+      <span class="badge opt">Optional</span>
       <h2>Update Origin → MH Mapping</h2>
     </div>
     <div class="map-toggle" id="map-toggle">
@@ -466,7 +505,7 @@ tr.GR td:first-child { text-align: left; font-family: var(--font); font-size: 13
     <!-- RTO shipment -->
     <div class="card" style="max-width:none;width:100%;">
       <div class="card-head" style="border-bottom-color:#e9d5ff;">
-        <span class="badge opt" style="background:#f5f3ff;border-color:#c4b5fd;color:#6d28d9;">Required</span>
+        <span class="badge opt" style="background:#f5f3ff;border-color:#c4b5fd;color:#6d28d9;">Optional</span>
         <h2>RTO Shipments</h2>
         <p>CSV · no size limit</p>
       </div>
@@ -495,6 +534,31 @@ tr.GR td:first-child { text-align: left; font-family: var(--font); font-size: 13
 <!-- ═══ DASHBOARD ═══ -->
 <div id="stage-dash">
   <main>
+
+    <!-- Retractable mapping directory -->
+    <div id="dir-panel">
+      <div id="dir-toggle">
+        <div class="dir-toggle-left">
+          <span class="dir-arr">▶</span>
+          <span class="dir-toggle-title">Origin → MH Mapping</span>
+          <span class="dir-count-badge" id="dir-badge">0 origins</span>
+        </div>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted2)">click to expand</span>
+      </div>
+      <div id="dir-body">
+        <table class="dir-tbl">
+          <thead>
+            <tr>
+              <th>Origin Facility</th>
+              <th>MH Name</th>
+              <th>Club Under</th>
+              <th>Source</th>
+            </tr>
+          </thead>
+          <tbody id="dir-tbody"></tbody>
+        </table>
+      </div>
+    </div>
 
     <div id="dash-grid">
 
@@ -590,54 +654,100 @@ const FLYER_CAP  = 80;
 const ADJ_FACTOR = 1.1;   // Step 1 multiplier
 const MON_SCALE  = 1.5;   // Step 2 multiplier (monthly)
 const fc    = n => Math.ceil(n / FLYER_CAP);
-const adjMH = n => Math.ceil(Math.ceil(n * ADJ_FACTOR) * MON_SCALE); // ×1.1 then ×1.5
-const adjMo = n => Math.ceil(n * MON_SCALE); // Monthly Req: ×1.5 on 1.1x monthly value
+
+// roundUp applied to MONTHLY estimates only
+// n < 5 → keep as-is  |  n ≥ 5 → ceil to nearest unit (10/100/1000…)
+const roundUp = n => {
+  if (!n || n <= 0) return 0;
+  if (n < 5) return n;
+  const digits = Math.floor(Math.log10(n)) + 1;
+  const unit   = Math.pow(10, Math.max(1, digits - 2));
+  return Math.ceil(n / unit) * unit;
+};
+
+const adjMH = n => Math.ceil(Math.ceil(n * ADJ_FACTOR) * MON_SCALE); // ×1.1 ×1.5  — no roundUp on current
+const adjDH = n => Math.ceil(n * ADJ_FACTOR);                        // ×1.1 only  — no roundUp on current
+const adjMo = n => roundUp(Math.ceil(n * MON_SCALE));                 // ×1.5 + roundUp for monthly
 const isMH  = s => typeof s === 'string' && s.toLowerCase().startsWith('motherhub');
 
 /* ═══════════════════════════════════════════
    DIRECTORY
 ═══════════════════════════════════════════ */
+// [origin_facility_name, mh_name, club_under?]
 const BASE_DIR = [
-  ['fkl-pune','MotherHub_PUNE'],['FKL_mhmalur','Motherhub_MAL'],
-  ['FKL_JKS','Motherhub_JKS'],['Fkl-ahmedabad01','Motherhub_ABD'],
-  ['fkl_STVBTS01','MotherHub_STV'],['FKL_BLRGMH3','Motherhub_BLR_GMH_3'],
-  ['Fkl-KalashHRNWB','Motherhub_HRN'],['Fkl-fwdchennai','MotherHub_CSK'],
-  ['Fkl-GAUFlexPLS','Motherhub_PLS'],['Fkl-PATFlexHajipur','MotherHub_HJR'],
-  ['FKL_hydpatan','MotherHub_HYP'],['FKL_HRNVMH4','Motherhub_HRN'],
-  ['FKL_IndoreBTS_02','Motherhub_IDO_BTS'],['Fkl-MUMFlexSai4','Motherhub_SAI_4'],
-  ['FKL_ulbesr','Motherhub_ULB'],['fkl_NAGBTS01','MotherHub_NAG_BTS'],
-  ['FKL_Jaipur_BTS','Motherhub_JAI_BTS'],['FKL_ANJVMH2','Motherhub_ANJ'],
-  ['FKL_BlrVMH2','MotherHub_BLR'],['fkl_DELFlexYakubpur','MotherHub_YKB'],
-  ['Fkl-MUMFlexSai4_EXT','Motherhub_SAI_4'],['fkl-Coimbatore','MotherHub_CJB'],
-  ['Fkl-sankpaGGN','Motherhub_GGN'],['FKL_DELInCity','Motherhub_DIC'],
-  ['Fkl_Kalash_NDC','MotherHub_NDC'],['MP_SuratHub_STV','MotherHub_STV'],
-  ['FKL_ANJ_GMH3','Motherhub_ANJ'],['Fkl-sankpaGGNGMH','Motherhub_GGN'],
-  ['FKL_farukngr','MotherHub_FRK'],['FKL_HRNVMH2','Motherhub_HRN'],
-  ['ekl-Medchal','MotherHub_MED'],['Fkl_LKO_BTS','Motherhub_LKO_BTS'],
-  ['Fkl-Hubli','Motherhub_Hub'],['Fkl-BLRAnjaniHoskote','Motherhub_ANJ'],
-  ['fkl_LUDFlex','Motherhub_LUH'],['FKL_UluberiaVMH2','Motherhub_ULB'],
-  ['FKL_Bhuneshwar_BTS01','Motherhub_CUT'],['FKL_hydpatan_EXT','MotherHub_HYP'],
-  ['FKL_Farukngr_EXT','MotherHub_FRK'],['fkl_VNI_BTS','Motherhub_VNI_BTS'],
+  ['fkl-pune','MotherHub_PUNE'],
+  ['FKL_mhmalur','Motherhub_MAL'],
+  ['FKL_JKS','Motherhub_JKS'],
+  ['Fkl-ahmedabad01','Motherhub_ABD'],
+  ['fkl_STVBTS01','MotherHub_STV'],
+  ['FKL_BLRGMH3','Motherhub_BLR_GMH_3','MotherHub_BLR'],
+  ['Fkl-KalashHRNWB','Motherhub_HRN'],
+  ['Fkl-fwdchennai','MotherHub_CSK'],
+  ['Fkl-GAUFlexPLS','Motherhub_PLS'],
+  ['Fkl-PATFlexHajipur','MotherHub_HJR'],
+  ['FKL_hydpatan','MotherHub_HYP'],
+  ['FKL_HRNVMH4','Motherhub_HRN'],
+  ['FKL_IndoreBTS_02','Motherhub_IDO_BTS'],
+  ['Fkl-MUMFlexSai4','Motherhub_SAI_4'],
+  ['FKL_ulbesr','Motherhub_ULB'],
+  ['fkl_NAGBTS01','MotherHub_NAG_BTS'],
+  ['FKL_Jaipur_BTS','Motherhub_JAI_BTS'],
+  ['FKL_ANJVMH2','Motherhub_ANJ'],
+  ['FKL_BlrVMH2','MotherHub_BLR'],
+  ['fkl_DELFlexYakubpur','MotherHub_YKB'],
+  ['Fkl-MUMFlexSai4_EXT','Motherhub_SAI_4'],
+  ['fkl-Coimbatore','MotherHub_CJB'],
+  ['Fkl-sankpaGGN','Motherhub_GGN'],
+  ['FKL_DELInCity','Motherhub_DIC'],
+  ['Fkl_Kalash_NDC','MotherHub_NDC'],
+  ['MP_SuratHub_STV','MotherHub_STV'],
+  ['FKL_ANJ_GMH3','Motherhub_ANJ'],
+  ['Fkl-sankpaGGNGMH','Motherhub_GGN'],
+  ['FKL_farukngr','MotherHub_FRK'],
+  ['FKL_HRNVMH2','Motherhub_HRN'],
+  ['ekl-Medchal','MotherHub_MED'],
+  ['Fkl_LKO_BTS','Motherhub_LKO_BTS'],
+  ['Fkl-Hubli','Motherhub_Hub'],
+  ['Fkl-BLRAnjaniHoskote','Motherhub_ANJ'],
+  ['fkl_LUDFlex','Motherhub_LUH'],
+  ['FKL_UluberiaVMH2','Motherhub_ULB'],
+  ['FKL_Bhuneshwar_BTS01','Motherhub_CUT'],
+  ['FKL_hydpatan_EXT','MotherHub_HYP'],
+  ['FKL_Farukngr_EXT','MotherHub_FRK'],
+  ['fkl_VNI_BTS','Motherhub_VNI_BTS'],
   ['FKL_ulbesr_EXT','Motherhub_ULB'],
-  ['Fkl-MUMFlexSai4_DSC','Motherhub_SAI_4_DSC'],
+  ['Fkl-MUMFlexSai4_DSC','Motherhub_SAI_4_DSC','Motherhub_SAI_4'],
   ['Fkl-Shrtcrt-PIT','Motherhub_SHRTCRT_PIT'],
+  ['Fkl-MUMFlexSai5','Motherhub_SAI_5','Motherhub_SAI_4'],
 ];
+
+// MH-level aliases: child MH name → parent MH name
+// Applied to resolved origin AND destination_mh for consistent aggregation
+const MH_CLUB = new Map([
+  ['motherhub_blr_flex',  'MotherHub_BLR'],
+  ['motherhub_blr_gmh_3', 'MotherHub_BLR'],
+  ['motherhub_stv_bts',   'MotherHub_STV'],
+  ['motherhub_dic_gmh',   'Motherhub_DIC'],
+  ['motherhub_sai_5',     'Motherhub_SAI_4'],
+  ['motherhub_sai_4_dsc', 'Motherhub_SAI_4'],
+]);
+const resolveMH = mh => (mh && MH_CLUB.get(mh.toLowerCase())) || mh;
 
 const DIR = new Map();
 function initDir() {
   DIR.clear();
-  for (const [orig, mh] of BASE_DIR) {
+  for (const [orig, mh, club] of BASE_DIR) {
     const key = orig.toLowerCase();
-    if (!DIR.has(key)) DIR.set(key, mh);
+    if (!DIR.has(key)) DIR.set(key, { mh, origKey: orig, clubUnder: club || '', source: 'base' });
   }
   document.getElementById('dir-count').textContent = DIR.size;
 }
 function patchDir(entries) {
   let added = 0, updated = 0;
-  for (const { origKey, mh } of entries) {
+  for (const { origKey, mh, clubUnder } of entries) {
     const key = origKey.toLowerCase();
     const exists = DIR.has(key);
-    DIR.set(key, mh);
+    DIR.set(key, { mh, origKey, clubUnder: clubUnder || '', source: 'patch' });
     exists ? updated++ : added++;
   }
   document.getElementById('dir-count').textContent = DIR.size;
@@ -671,9 +781,16 @@ function loadMapping(file) {
         document.getElementById('map-status').textContent = `Columns not found. Need: origin_facility_name, mh_name. Found: ${cols.join(', ')}`;
         return;
       }
-      const entries = result.data.filter(r => (r[C_OFN]||'').trim() && (r[C_MH]||'').trim())
-                                  .map(r => ({ origKey: r[C_OFN].trim(), mh: r[C_MH].trim() }));
+      const C_CLUB = ci('club_under', 'club under col', 'club_under_col');
+      const entries = result.data
+        .filter(r => (r[C_OFN]||'').trim() && (r[C_MH]||'').trim())
+        .map(r => ({
+          origKey:   r[C_OFN].trim(),
+          mh:        r[C_MH].trim(),
+          clubUnder: C_CLUB ? (r[C_CLUB]||'').trim() : ''
+        }));
       const { added, updated } = patchDir(entries);
+      if (document.getElementById('stage-dash').style.display !== 'none') renderDirPanel();
       const ms = document.getElementById('map-status');
       ms.style.display = 'block'; ms.style.color = 'var(--g)';
       ms.textContent = `✓ Patched ${entries.length} entries from ${file.name} — ${added} new, ${updated} updated`;
@@ -701,7 +818,10 @@ shipDZdash.addEventListener('drop', e => { e.preventDefault(); shipDZdash.classL
 document.getElementById('ship-input-dash').addEventListener('change', e => e.target.files[0] && goShipment(e.target.files[0]));
 
 function goShipment(file) {
-  // Show fwd panel content area immediately (for progress bar visibility)
+  // Switch to dashboard immediately so progress bar is visible
+  document.getElementById('stage-upload').style.display = 'none';
+  document.getElementById('stage-dash').style.display   = 'block';
+  renderDirPanel();
   document.getElementById('fwd-empty').style.display   = 'none';
   document.getElementById('fwd-content').style.display = 'block';
   const ps = document.getElementById('parse-status');
@@ -761,15 +881,15 @@ function compute(rows) {
     if (useDir) {
       const ofn = (r[C_OFN] || '').trim();
       if (!ofn) { skipOFN++; continue; }
-      const mh = DIR.get(ofn.toLowerCase());
-      if (!mh) { skipDir++; continue; }
-      origin = mh;
+      const entry = DIR.get(ofn.toLowerCase());
+      if (!entry) { skipDir++; continue; }
+      origin = resolveMH(entry.clubUnder || entry.mh);
     } else {
       origin = (r[C_MH] || '').trim();
       if (!origin) { skipMH++; continue; }
     }
 
-    const dm = (r[C_DM] || '').trim();
+    const dm = resolveMH((r[C_DM] || '').trim());
     const ah = (r[C_AH] || '').trim();
 
     if (!dm) {
@@ -862,13 +982,17 @@ function compute(rows) {
     const distScale  = totT > 0 ? (totT + blanks) / totT : 1;
     const totF_dist  = Math.ceil(totF * distScale);
 
-    // MH Req: distributed flyers × 1.1 × 1.5
-    const adjF = adjMH(totF_dist);
+    // MH Req: distributed flyers × 1.1 × 1.5 (rounded up)
+    const adjF   = adjMH(totF_dist);
 
-    // Monthly: scale the MH Req flyer count (adjF) by daily rate → monthly volume, then ×1.5 buffer
+    // Monthly logic:
+    //   base1_1 = flyers with 1.1x only (for the given period)
+    //   monF    = scale base1_1 to 30 days
+    //   monAdj  = apply 1.5x buffer on monthly
+    const base1_1 = Math.ceil(totF_dist * ADJ_FACTOR);
     const monTIDs = scaleFactor ? Math.round((totT + blanks) * scaleFactor) : null;
-    const monF    = scaleFactor ? Math.ceil(adjF * scaleFactor)             : null;  // scale MH Req flyers
-    const monAdj  = monF !== null ? Math.ceil(monF * 1.5)                   : null;  // monthly buffer ×1.5
+    const monF    = scaleFactor ? Math.ceil(base1_1 * scaleFactor)          : null;
+    const monAdj  = monF !== null ? roundUp(Math.ceil(monF * MON_SCALE))     : null;
 
     gtTotF  += totF_dist;
     gtAdjF  += adjF;
@@ -893,12 +1017,46 @@ function compute(rows) {
 /* ═══════════════════════════════════════════
    SHOW DASHBOARD
 ═══════════════════════════════════════════ */
+/* ═══════════════════════════════════════════
+   DIRECTORY PANEL
+═══════════════════════════════════════════ */
+function renderDirPanel() {
+  const entries = [...DIR.entries()].sort((a, b) => a[1].mh.localeCompare(b[1].mh));
+  document.getElementById('dir-badge').textContent = `${entries.length} origins · ${MH_CLUB.size} MH aliases`;
+
+  document.getElementById('dir-tbody').innerHTML = entries.map(([, v]) => `
+    <tr>
+      <td class="dir-orig">${v.origKey}</td>
+      <td class="dir-mh">${v.mh}</td>
+      <td class="dir-club">${v.clubUnder
+        ? `${v.clubUnder} <span style="color:var(--muted2);font-size:9px">(dir)</span>`
+        : (MH_CLUB.get(v.mh.toLowerCase()) ? `${MH_CLUB.get(v.mh.toLowerCase())} <span style="color:var(--muted2);font-size:9px">(alias)</span>` : '—')
+      }</td>
+      <td><span class="${v.source === 'patch' ? 'dir-src-patch' : 'dir-src-base'}">${v.source === 'patch' ? '⚡ patch' : 'base'}</span></td>
+    </tr>`).join('')
+    + [...MH_CLUB.entries()].map(([child, parent]) => `
+    <tr style="background:rgba(240,112,48,.03)">
+      <td class="dir-orig" style="color:var(--muted2);font-style:italic">MH alias</td>
+      <td class="dir-mh" style="color:var(--o)">${child.split('_').map(w=>w[0].toUpperCase()+w.slice(1)).join('_').replace('motherhub','Motherhub')}</td>
+      <td class="dir-club">${parent} <span style="color:var(--muted2);font-size:9px">(alias)</span></td>
+      <td><span style="color:var(--o);font-size:9px">alias</span></td>
+    </tr>`).join('');
+
+  // Wire toggle (once)
+  const toggle = document.getElementById('dir-toggle');
+  if (!toggle._wired) {
+    toggle._wired = true;
+    toggle.addEventListener('click', () => document.getElementById('dir-panel').classList.toggle('open'));
+  }
+}
+
 function showDash() {
   document.getElementById('stage-upload').style.display = 'none';
   document.getElementById('stage-dash').style.display   = 'block';
   document.getElementById('fwd-empty').style.display    = 'none';
   document.getElementById('fwd-content').style.display  = 'block';
   document.getElementById('fwd-dl-btn').style.display   = 'inline-flex';
+  renderDirPanel();
 
   // Skip banner
   const sb = document.getElementById('skip-banner');
@@ -1073,6 +1231,7 @@ function goRTO(file) {
   // Show dash and RTO panel immediately for progress bar
   document.getElementById('stage-upload').style.display = 'none';
   document.getElementById('stage-dash').style.display   = 'block';
+  renderDirPanel();
   document.getElementById('rto-empty').style.display    = 'none';
   document.getElementById('rto-dl-btn').style.display   = 'inline-flex';
   const rtoBody = document.getElementById('rto-panel-body');
@@ -1131,7 +1290,7 @@ function computeRTO(rows) {
     if (C_OFN) {
       const ofn = (r[C_OFN] || '').trim();
       if (!ofn)                        { skipOFN++; continue; }
-      if (!DIR.get(ofn.toLowerCase())) { skipDir++; continue; }
+      if (!DIR.get(ofn.toLowerCase())?.mh) { skipDir++; continue; }
     }
 
     const ah = (r[C_AH] || '').trim();
@@ -1171,13 +1330,14 @@ function computeRTO(rows) {
     // Step 2: flyers needed = ceil(TIDs / 80)
     const rawFlyers  = fc(tidsDist);
 
-    // Step 3: scale → DH Req = ceil(ceil(rawFlyers × 1.1) × 1.5)
-    const dhReq      = adjMH(rawFlyers);
+    // DH Req = ×1.1 only + roundUp (1.5x applied only on monthly)
+    const rtoBase1_1 = Math.ceil(rawFlyers * ADJ_FACTOR);
+    const dhReq      = adjDH(rawFlyers);  // ×1.1 only, no roundUp on current
 
-    // Monthly: scale the DH Req flyer count, then ×1.5 buffer
-    const monTIDs = scaleFactor ? Math.round(tidsDist * scaleFactor)       : null;
-    const monRawF = scaleFactor ? Math.ceil(dhReq * scaleFactor)           : null;  // scale DH Req flyers
-    const monReq  = monRawF !== null ? Math.ceil(monRawF * 1.5)            : null;  // monthly buffer ×1.5
+    // Monthly: project 1.1x base to 30 days, then ×1.5
+    const monTIDs = scaleFactor ? Math.round(tidsDist * scaleFactor)         : null;
+    const monRawF = scaleFactor ? Math.ceil(rtoBase1_1 * scaleFactor)        : null;
+    const monReq  = monRawF !== null ? roundUp(Math.ceil(monRawF * MON_SCALE)) : null;
 
     gtTids     += tids;
     gtTidsDist += tidsDist;
@@ -1225,7 +1385,7 @@ function showRTO() {
             <tr>
               <th class="sub gl">TIDs <span style="font-size:8px;opacity:.7">(+blanks)</span></th>
               <th class="sub">Flyers <span style="font-size:8px;opacity:.7">÷80</span></th>
-              <th class="sub">DH Req <span style="font-size:8px;opacity:.7">×1.1×1.5</span></th>
+              <th class="sub">DH Req <span style="font-size:8px;opacity:.7">×1.1</span></th>
               <th class="sub gl">TIDs/mo</th>
               <th class="sub">Mo. Req <span style="font-size:8px;opacity:.7">×1.1×1.5</span></th>
             </tr>
@@ -1336,7 +1496,7 @@ function renderRTOTable(data) {
    RTO CSV DOWNLOAD
 ═══════════════════════════════════════════ */
 function downloadRTOCSV() {
-  const header = ['Delivery Hub','TIDs (actual)','Blank Share','TIDs (incl. blanks)','Raw Flyers (÷80)','DH Req (×1.1×1.5)','Monthly Est TIDs','Monthly Req (×1.1×1.5)'];
+  const header = ['Delivery Hub','TIDs (actual)','Blank Share','TIDs (incl. blanks)','Raw Flyers (÷80)','DH Req (×1.1)','Monthly Est TIDs','Monthly Req (×1.5)'];
   const rows = rtoData.map(d => [
     d.dh, d.tids, d.blankShare, d.tidsDist, d.rawFlyers, d.dhReq,
     d.monTIDs ?? '', d.monReq ?? ''
