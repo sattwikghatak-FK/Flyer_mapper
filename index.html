@@ -560,7 +560,15 @@ tr.GR td:first-child { text-align: left; font-family: var(--font); font-size: 13
           <div class="panel-empty" id="rto-empty">
             <span class="pe-icon">↩️</span>
             <div class="pe-title">No RTO Data Loaded</div>
-            <div class="pe-sub">Upload an RTO shipment CSV on the<br>upload page to see DH flyer requirements.</div>
+            <div class="pe-sub">Drop a file below or click to browse</div>
+            <div class="dz" id="rto-dz-dash" style="border-color:#c4b5fd;background:#faf5ff;width:100%;max-width:340px;margin-top:8px;padding:18px 16px;">
+              <input type="file" id="rto-input-dash" accept=".csv">
+              <span style="font-size:22px;display:block;margin-bottom:6px;">↩️</span>
+              <div style="font-size:13px;font-weight:700;color:#6d28d9;margin-bottom:3px;">Drop RTO CSV</div>
+              <div style="font-size:11px;color:var(--muted);">
+                Needs: <code class="c" style="font-size:10px">Assigned_hub</code> · <code class="c" style="font-size:10px">rto_create_datetime</code>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1035,6 +1043,13 @@ rtoDZ.addEventListener('dragover', e => { e.preventDefault(); rtoDZ.classList.ad
 rtoDZ.addEventListener('dragleave', () => rtoDZ.classList.remove('drag'));
 rtoDZ.addEventListener('drop', e => { e.preventDefault(); rtoDZ.classList.remove('drag'); e.dataTransfer.files[0] && goRTO(e.dataTransfer.files[0]); });
 document.getElementById('rto-input').addEventListener('change', e => e.target.files[0] && goRTO(e.target.files[0]));
+
+// Also wire the in-dashboard RTO drop zone (visible after forward data loads)
+const rtoDZdash = document.getElementById('rto-dz-dash');
+rtoDZdash.addEventListener('dragover', e => { e.preventDefault(); rtoDZdash.classList.add('drag'); });
+rtoDZdash.addEventListener('dragleave', () => rtoDZdash.classList.remove('drag'));
+rtoDZdash.addEventListener('drop', e => { e.preventDefault(); rtoDZdash.classList.remove('drag'); e.dataTransfer.files[0] && goRTO(e.dataTransfer.files[0]); });
+document.getElementById('rto-input-dash').addEventListener('change', e => e.target.files[0] && goRTO(e.target.files[0]));
 
 function goRTO(file) {
   const ps = document.getElementById('rto-parse-status');
