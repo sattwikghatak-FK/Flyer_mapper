@@ -985,14 +985,11 @@ function compute(rows) {
     // MH Req: distributed flyers × 1.1 × 1.5 (rounded up)
     const adjF   = adjMH(totF_dist);
 
-    // Monthly logic:
-    //   base1_1 = flyers with 1.1x only (for the given period)
-    //   monF    = scale base1_1 to 30 days
-    //   monAdj  = apply 1.5x buffer on monthly
-    const base1_1 = Math.ceil(totF_dist * ADJ_FACTOR);
+    // Monthly: project full MH Req (adjF = ×1.1×1.5) to 30 days, then ×1.5
+    // adjF / days × 30 = monthly flyers  →  ×1.5 = monthly req
     const monTIDs = scaleFactor ? Math.round((totT + blanks) * scaleFactor) : null;
-    const monF    = scaleFactor ? Math.ceil(base1_1 * scaleFactor)          : null;
-    const monAdj  = monF !== null ? roundUp(Math.ceil(monF * MON_SCALE))     : null;
+    const monF    = scaleFactor ? Math.ceil(adjF * scaleFactor)              : null;
+    const monAdj  = monF !== null ? roundUp(Math.ceil(monF * MON_SCALE))    : null;
 
     gtTotF  += totF_dist;
     gtAdjF  += adjF;
