@@ -138,15 +138,12 @@ main { max-width: 100%; margin: 0; padding: 18px 20px 80px; }
 /* ── Dashboard side-by-side layout ── */
 #dash-grid {
   display: grid;
-  grid-template-columns: 1fr;  /* starts full-width; becomes 2-col when RTO loads */
+  grid-template-columns: 1fr 1fr;
   gap: 20px;
   align-items: start;
 }
-#dash-grid.has-rto {
-  grid-template-columns: 1fr 1fr;
-}
 @media (max-width: 900px) {
-  #dash-grid.has-rto { grid-template-columns: 1fr; }
+  #dash-grid { grid-template-columns: 1fr; }
 }
 
 .dash-panel {
@@ -236,6 +233,14 @@ tr.PR td {
   border-top:2px solid var(--y-bd)!important;font-family:var(--mono);padding:9px 10px;text-align:right;
 }
 tr.PR td:first-child{text-align:left;font-family:var(--font);font-size:12px;font-weight:800;}
+
+.panel-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 52px 24px; text-align: center; gap: 10px; min-height: 220px;
+}
+.panel-empty .pe-icon { font-size: 34px; opacity: .35; }
+.panel-empty .pe-title { font-size: 14px; font-weight: 600; color: var(--muted); }
+.panel-empty .pe-sub { font-size: 12px; color: var(--muted2); line-height: 1.7; }
 
 /* kpi row */
 #kpi-bar {
@@ -507,62 +512,55 @@ tr.GR td:first-child { text-align: left; font-family: var(--font); font-size: 13
           <div>
             <div class="dash-panel-title">📦 Forward Shipments <span class="meta" id="table-meta"></span></div>
           </div>
-          <button class="dl-btn" onclick="downloadCSV()" style="font-size:12px;padding:5px 12px;">↓ CSV</button>
+          <button class="dl-btn" onclick="downloadCSV()" id="fwd-dl-btn" style="font-size:12px;padding:5px 12px;display:none;">↓ CSV</button>
         </div>
         <div class="dash-panel-body">
-          <div class="panel-skip" id="skip-banner"></div>
-          <div class="panel-kpi-bar" id="kpi-bar"></div>
-          <div class="panel-mbar" id="monthly-bar"></div>
-          <div class="panel-tw">
-            <table class="pt">
-              <thead>
-                <tr>
-                  <th rowspan="2" style="vertical-align:bottom;text-align:left;">MH Name</th>
-                  <th class="gh" colspan="1" style="border-bottom:1px solid var(--border)">Current</th>
-                  <th class="gh" colspan="3" style="border-bottom:1px solid var(--border)">Monthly Est.</th>
-                </tr>
-                <tr>
-                  <th class="sub gl">MH Req <span style="font-size:8px;opacity:.7">×1.1×1.5</span></th>
-                  <th class="sub gl">TIDs/mo</th>
-                  <th class="sub">Mo. Flyers</th>
-                  <th class="sub">Mo. Req <span style="font-size:8px;opacity:.7">×1.5</span></th>
-                </tr>
-              </thead>
-              <tbody id="main-tbody"></tbody>
-            </table>
+          <!-- placeholder shown until forward data is loaded -->
+          <div class="panel-empty" id="fwd-empty">
+            <span class="pe-icon">📦</span>
+            <div class="pe-title">No Shipment Data Loaded</div>
+            <div class="pe-sub">Upload a forward shipment CSV on the<br>upload page to see MH flyer requirements.</div>
+          </div>
+          <div id="fwd-content" style="display:none;">
+            <div class="panel-skip" id="skip-banner"></div>
+            <div class="panel-kpi-bar" id="kpi-bar"></div>
+            <div class="panel-mbar" id="monthly-bar"></div>
+            <div class="panel-tw">
+              <table class="pt">
+                <thead>
+                  <tr>
+                    <th rowspan="2" style="vertical-align:bottom;text-align:left;">MH Name</th>
+                    <th class="gh" colspan="1" style="border-bottom:1px solid var(--border)">Current</th>
+                    <th class="gh" colspan="3" style="border-bottom:1px solid var(--border)">Monthly Est.</th>
+                  </tr>
+                  <tr>
+                    <th class="sub gl">MH Req <span style="font-size:8px;opacity:.7">×1.1×1.5</span></th>
+                    <th class="sub gl">TIDs/mo</th>
+                    <th class="sub">Mo. Flyers</th>
+                    <th class="sub">Mo. Req <span style="font-size:8px;opacity:.7">×1.5</span></th>
+                  </tr>
+                </thead>
+                <tbody id="main-tbody"></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- ── RTO PANEL ── -->
-      <div class="dash-panel" id="rto-panel" style="display:none;">
+      <div class="dash-panel" id="rto-panel">
         <div class="dash-panel-head rto">
           <div>
             <div class="dash-panel-title" style="color:#6d28d9;">↩️ RTO Shipments <span class="meta" id="rto-table-meta"></span></div>
           </div>
-          <button class="dl-btn" onclick="downloadRTOCSV()" style="font-size:12px;padding:5px 12px;border-color:#c4b5fd;color:#6d28d9;">↓ CSV</button>
+          <button class="dl-btn" onclick="downloadRTOCSV()" id="rto-dl-btn" style="font-size:12px;padding:5px 12px;border-color:#c4b5fd;color:#6d28d9;display:none;">↓ CSV</button>
         </div>
-        <div class="dash-panel-body">
-          <div class="panel-skip" id="rto-skip-banner"></div>
-          <div class="panel-kpi-bar" id="rto-kpi-bar"></div>
-          <div class="panel-mbar" id="rto-monthly-bar"></div>
-          <div class="panel-tw">
-            <table class="pt">
-              <thead>
-                <tr>
-                  <th rowspan="2" style="vertical-align:bottom;text-align:left;">Delivery Hub</th>
-                  <th class="gh" colspan="1" style="border-bottom:1px solid var(--border)">Current</th>
-                  <th class="gh" colspan="3" style="border-bottom:1px solid var(--border)">Monthly Est.</th>
-                </tr>
-                <tr>
-                  <th class="sub gl">DH Req <span style="font-size:8px;opacity:.7">×1.1×1.5</span></th>
-                  <th class="sub gl">TIDs/mo</th>
-                  <th class="sub">Mo. Flyers</th>
-                  <th class="sub">Mo. Req <span style="font-size:8px;opacity:.7">×1.5</span></th>
-                </tr>
-              </thead>
-              <tbody id="rto-tbody"></tbody>
-            </table>
+        <div class="dash-panel-body" id="rto-panel-body">
+          <!-- placeholder shown until RTO data is loaded -->
+          <div class="panel-empty" id="rto-empty">
+            <span class="pe-icon">↩️</span>
+            <div class="pe-title">No RTO Data Loaded</div>
+            <div class="pe-sub">Upload an RTO shipment CSV on the<br>upload page to see DH flyer requirements.</div>
           </div>
         </div>
       </div>
@@ -872,6 +870,9 @@ function compute(rows) {
 function showDash() {
   document.getElementById('stage-upload').style.display = 'none';
   document.getElementById('stage-dash').style.display   = 'block';
+  document.getElementById('fwd-empty').style.display    = 'none';
+  document.getElementById('fwd-content').style.display  = 'block';
+  document.getElementById('fwd-dl-btn').style.display   = 'inline-flex';
 
   // Skip banner
   const sb = document.getElementById('skip-banner');
@@ -1059,11 +1060,13 @@ function goRTO(file) {
 
 /* ═══════════════════════════════════════════
    RTO COMPUTE
-   Logic: group by Assigned_hub (DH)
-          ceil(count / 80) = flyers to send TO that DH
-          adjF = ceil(totF × 1.1 × 1.5)   DH Req
-          monF = ceil(adjF × scaleFactor)
-          monAdj = ceil(monF × 1.5)  Monthly Req
+   Per DH (with blank distribution):
+     tids       = actual RTO TIDs at this DH
+     blankShare = proportional share of blank-Assigned_hub rows
+     tidsDist   = tids + blankShare          ← total incl. blanks
+     rawFlyers  = ceil(tidsDist / 80)
+     dhReq      = ceil(ceil(rawFlyers × 1.1) × 1.5)
+   Total = Σ dhReq across all DHs
 ═══════════════════════════════════════════ */
 function computeRTO(rows) {
   const cols = Object.keys(rows[0] || {});
@@ -1075,17 +1078,17 @@ function computeRTO(rows) {
 
   let skipOFN=0, skipDir=0, skipAH=0, processed=0;
   const distinctDates = new Set();
-  const dhCounts = {};
+  const dhCounts = {};   // dh → actual TID count
 
   for (const r of rows) {
     if (C_OFN) {
       const ofn = (r[C_OFN] || '').trim();
-      if (!ofn)                         { skipOFN++; continue; }
-      if (!DIR.get(ofn.toLowerCase()))  { skipDir++; continue; }
+      if (!ofn)                        { skipOFN++; continue; }
+      if (!DIR.get(ofn.toLowerCase())) { skipDir++; continue; }
     }
 
     const ah = (r[C_AH] || '').trim();
-    if (!ah) { skipAH++; continue; }
+    if (!ah) { skipAH++; continue; }  // counted for blank dist
 
     if (C_DATE) {
       const raw = (r[C_DATE] || '').trim();
@@ -1100,40 +1103,51 @@ function computeRTO(rows) {
     dhCounts[ah] = (dhCounts[ah] || 0) + 1;
   }
 
+  // Monthly scale factor
   const daysInData  = distinctDates.size || null;
   const dailyRate   = daysInData ? processed / daysInData : null;
   const monthlyTIDs = dailyRate  ? Math.round(dailyRate * 30) : null;
   const scaleFactor = monthlyTIDs ? monthlyTIDs / processed : null;
 
-  // Proportional blank distribution across DHs
+  // Distribute blank Assigned_hub rows proportionally across known DHs
   const totalBlanks = skipAH;
   const totalProc   = processed || 1;
 
   rtoData = [];
-  let gtTotF=0, gtAdjF=0, gtMonF=0, gtMonAdj=0, gtMonTIDs=0;
+  let gtTids=0, gtTidsDist=0, gtRawF=0, gtDHReq=0, gtMonReq=0, gtMonTIDs=0;
 
-  for (const [dh, count] of Object.entries(dhCounts).sort((a, b) => b[1] - a[1])) {
-    const blankShare = Math.round((count / totalProc) * totalBlanks);
-    const countDist  = count + blankShare;
+  for (const [dh, tids] of Object.entries(dhCounts).sort((a, b) => b[1] - a[1])) {
+    // Step 1: distribute blanks proportionally by this DH's share of processed
+    const blankShare = Math.round((tids / totalProc) * totalBlanks);
+    const tidsDist   = tids + blankShare;                         // total TIDs incl. blanks
 
-    const totF  = fc(countDist);
-    const adjF  = adjMH(totF);
-    const monTIDs = scaleFactor ? Math.round(countDist * scaleFactor) : null;
-    const monF    = scaleFactor ? Math.ceil(adjF * scaleFactor)       : null;
-    const monAdj  = monF !== null ? adjMo(monF)                       : null;
+    // Step 2: flyers needed = ceil(TIDs / 80)
+    const rawFlyers  = fc(tidsDist);
 
-    gtTotF  += totF;  gtAdjF  += adjF;
-    if (monF    !== null) gtMonF    += monF;
-    if (monAdj  !== null) gtMonAdj  += monAdj;
+    // Step 3: scale → DH Req = ceil(ceil(rawFlyers × 1.1) × 1.5)
+    const dhReq      = adjMH(rawFlyers);
+
+    // Monthly
+    const monTIDs = scaleFactor ? Math.round(tidsDist * scaleFactor) : null;
+    const monRawF = monTIDs !== null ? fc(monTIDs) : null;
+    const monReq  = monRawF !== null ? adjMH(monRawF) : null;
+
+    gtTids     += tids;
+    gtTidsDist += tidsDist;
+    gtRawF     += rawFlyers;
+    gtDHReq    += dhReq;
+    if (monReq  !== null) gtMonReq  += monReq;
     if (monTIDs !== null) gtMonTIDs += monTIDs;
 
-    rtoData.push({ dh, count, blankShare, countDist, totF, adjF, monTIDs, monF, monAdj });
+    rtoData.push({ dh, tids, blankShare, tidsDist, rawFlyers, dhReq, monTIDs, monRawF, monReq });
   }
 
   RTO_GT = {
     totalRows: rows.length, processed, skipOFN, skipDir, skipAH,
     totalSkipped: skipOFN + skipDir + skipAH,
-    dhs: rtoData.length, gtTotF, gtAdjF, gtMonF, gtMonAdj, gtMonTIDs,
+    dhs: rtoData.length, gtTids, gtTidsDist, gtRawF, gtDHReq, gtMonReq, gtMonTIDs,
+    // aliases for renderFooter compatibility
+    gtAdjF: gtDHReq, gtMonAdj: gtMonReq, gtTotF: gtRawF,
     daysInData, dailyRate, monthlyTIDs, scaleFactor
   };
 }
@@ -1142,9 +1156,38 @@ function computeRTO(rows) {
    SHOW RTO
 ═══════════════════════════════════════════ */
 function showRTO() {
-  // Show RTO panel and activate 2-col grid
-  document.getElementById('rto-panel').style.display = 'block';
-  document.getElementById('dash-grid').classList.add('has-rto');
+  // Show RTO panel content, hide placeholder
+  document.getElementById('rto-empty').style.display = 'none';
+  document.getElementById('rto-dl-btn').style.display = 'inline-flex';
+  // Build RTO content into panel body (after placeholder)
+  const rtoBody = document.getElementById('rto-panel-body');
+  // Inject content area if not already present
+  if (!document.getElementById('rto-skip-banner')) {
+    rtoBody.insertAdjacentHTML('beforeend', `
+      <div class="panel-skip" id="rto-skip-banner"></div>
+      <div class="panel-kpi-bar" id="rto-kpi-bar"></div>
+      <div class="panel-mbar" id="rto-monthly-bar"></div>
+      <div class="panel-tw">
+        <table class="pt">
+          <thead>
+            <tr>
+              <th rowspan="2" style="vertical-align:bottom;text-align:left;">Delivery Hub</th>
+              <th class="gh" colspan="3" style="border-bottom:1px solid var(--border)">Current Data</th>
+              <th class="gh" colspan="2" style="border-bottom:1px solid var(--border)">Monthly Est.</th>
+            </tr>
+            <tr>
+              <th class="sub gl">TIDs <span style="font-size:8px;opacity:.7">(+blanks)</span></th>
+              <th class="sub">Flyers <span style="font-size:8px;opacity:.7">÷80</span></th>
+              <th class="sub">DH Req <span style="font-size:8px;opacity:.7">×1.1×1.5</span></th>
+              <th class="sub gl">TIDs/mo</th>
+              <th class="sub">Mo. Req <span style="font-size:8px;opacity:.7">×1.1×1.5</span></th>
+            </tr>
+          </thead>
+          <tbody id="rto-tbody"></tbody>
+        </table>
+      </div>
+    `);
+  }
 
   const sb = document.getElementById('rto-skip-banner');
   if (RTO_GT.totalSkipped > 0) {
@@ -1161,19 +1204,19 @@ function showRTO() {
 
   document.getElementById('rto-kpi-bar').innerHTML = `
     <div class="pkpi p">
-      <div class="n">${(RTO_GT.gtAdjF||0).toLocaleString()}</div>
+      <div class="n">${(RTO_GT.gtDHReq||0).toLocaleString()}</div>
       <div class="l">Total DH Req</div>
-      <div class="s">${(RTO_GT.gtTotF||0).toLocaleString()} flyers ×1.1×1.5</div>
+      <div class="s">Σ per-DH (TIDs÷80 ×1.1×1.5)</div>
     </div>
     <div class="pkpi c">
-      <div class="n">${RTO_GT.gtMonAdj != null ? RTO_GT.gtMonAdj.toLocaleString() : '—'}</div>
+      <div class="n">${RTO_GT.gtMonReq != null ? RTO_GT.gtMonReq.toLocaleString() : '—'}</div>
       <div class="l">Monthly DH Req</div>
       <div class="s">${RTO_GT.monthlyTIDs != null ? RTO_GT.monthlyTIDs.toLocaleString() + ' RTOs/mo' : 'No date col'}</div>
     </div>
     <div class="pkpi g">
       <div class="n">${RTO_GT.dhs}</div>
       <div class="l">Delivery Hubs</div>
-      <div class="s">${(RTO_GT.processed||0).toLocaleString()} RTOs</div>
+      <div class="s">${(RTO_GT.processed||0).toLocaleString()} RTOs · ${(RTO_GT.skipAH||0)} blanks dist.</div>
     </div>
     <div class="pkpi r">
       <div class="n">${(RTO_GT.totalSkipped||0).toLocaleString()}</div>
@@ -1207,25 +1250,36 @@ function showRTO() {
 function renderRTOTable(data) {
   const tb = document.getElementById('rto-tbody');
   let html = '';
-  const G = { adjF:0, monTIDs:0, monF:0, monAdj:0 };
-  data.forEach(d => { G.adjF+=d.adjF; G.monTIDs+=(d.monTIDs||0); G.monF+=(d.monF||0); G.monAdj+=(d.monAdj||0); });
+  const G = { tidsDist:0, rawFlyers:0, dhReq:0, monTIDs:0, monReq:0 };
+  data.forEach(d => {
+    G.tidsDist  += d.tidsDist;
+    G.rawFlyers += d.rawFlyers;
+    G.dhReq     += d.dhReq;
+    G.monTIDs   += (d.monTIDs || 0);
+    G.monReq    += (d.monReq  || 0);
+  });
 
   data.forEach(d => {
     html += `<tr>
-      <td><span style="font-family:var(--mono);font-size:12px;font-weight:700;color:#6d28d9">${d.dh}</span></td>
-      <td class="gl"><span class="pb p">${d.adjF}</span></td>
+      <td>
+        <span style="font-family:var(--mono);font-size:12px;font-weight:700;color:#6d28d9">${d.dh}</span>
+        ${d.blankShare > 0 ? `<br><span style="font-family:var(--mono);font-size:9px;color:var(--muted2)">+${d.blankShare} blanks</span>` : ''}
+      </td>
+      <td class="gl" style="color:var(--muted2);font-size:11px">${d.tidsDist.toLocaleString()}</td>
+      <td style="color:var(--muted2);font-size:11px">${d.rawFlyers}</td>
+      <td><span class="pb p">${d.dhReq}</span></td>
       <td class="gl" style="color:var(--muted2);font-size:11px">${d.monTIDs != null ? d.monTIDs.toLocaleString() : '—'}</td>
-      <td style="color:var(--muted2);font-size:11px">${d.monF != null ? d.monF.toLocaleString() : '—'}</td>
-      <td>${d.monAdj != null ? `<span class="pb c">${d.monAdj}</span>` : '<span style="color:var(--muted2)">—</span>'}</td>
+      <td>${d.monReq != null ? `<span class="pb c">${d.monReq}</span>` : '<span style="color:var(--muted2)">—</span>'}</td>
     </tr>`;
   });
 
   html += `<tr class="PR">
     <td>TOTAL · ${data.length} DHs</td>
-    <td class="gl">${G.adjF.toLocaleString()}</td>
+    <td class="gl">${G.tidsDist.toLocaleString()}</td>
+    <td>${G.rawFlyers.toLocaleString()}</td>
+    <td>${G.dhReq.toLocaleString()}</td>
     <td class="gl">${G.monTIDs ? G.monTIDs.toLocaleString() : '—'}</td>
-    <td>${G.monF ? G.monF.toLocaleString() : '—'}</td>
-    <td>${G.monAdj ? G.monAdj.toLocaleString() : '—'}</td>
+    <td>${G.monReq ? G.monReq.toLocaleString() : '—'}</td>
   </tr>`;
 
   tb.innerHTML = html;
@@ -1235,16 +1289,21 @@ function renderRTOTable(data) {
    RTO CSV DOWNLOAD
 ═══════════════════════════════════════════ */
 function downloadRTOCSV() {
-  const header = ['Delivery Hub','RTO Shipments (dist.)','DH Req (×1.1 ×1.5)','Monthly Est RTOs','Monthly Flyers (1.1x)','Monthly Req (×1.5)'];
+  const header = ['Delivery Hub','TIDs (actual)','Blank Share','TIDs (incl. blanks)','Raw Flyers (÷80)','DH Req (×1.1×1.5)','Monthly Est TIDs','Monthly Req (×1.1×1.5)'];
   const rows = rtoData.map(d => [
-    d.dh, d.countDist, d.adjF,
-    d.monTIDs ?? '', d.monF ?? '', d.monAdj ?? ''
+    d.dh, d.tids, d.blankShare, d.tidsDist, d.rawFlyers, d.dhReq,
+    d.monTIDs ?? '', d.monReq ?? ''
   ]);
   const G = rtoData.reduce((acc, d) => ({
-    countDist: acc.countDist + d.countDist, adjF: acc.adjF + d.adjF,
-    monTIDs: acc.monTIDs + (d.monTIDs||0), monF: acc.monF + (d.monF||0), monAdj: acc.monAdj + (d.monAdj||0),
-  }), { countDist:0, adjF:0, monTIDs:0, monF:0, monAdj:0 });
-  rows.push(['TOTAL', G.countDist, G.adjF, G.monTIDs||'', G.monF||'', G.monAdj||'']);
+    tids:      acc.tids      + d.tids,
+    blankShare:acc.blankShare+ d.blankShare,
+    tidsDist:  acc.tidsDist  + d.tidsDist,
+    rawFlyers: acc.rawFlyers + d.rawFlyers,
+    dhReq:     acc.dhReq     + d.dhReq,
+    monTIDs:   acc.monTIDs   + (d.monTIDs || 0),
+    monReq:    acc.monReq    + (d.monReq  || 0),
+  }), { tids:0, blankShare:0, tidsDist:0, rawFlyers:0, dhReq:0, monTIDs:0, monReq:0 });
+  rows.push(['TOTAL', G.tids, G.blankShare, G.tidsDist, G.rawFlyers, G.dhReq, G.monTIDs||'', G.monReq||'']);
 
   const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type:'text/csv' });
